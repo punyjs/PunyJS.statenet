@@ -1,0 +1,24 @@
+{
+    "utils": [{
+        "copy": [":TruJS.core.object.Copy"]
+        , "uuid": ["TruJS.core.data._Uuid", []]
+    }]
+    , "is": [{
+        "error": [":TruJS.core.is.Error"]
+        , "nill": [":TruJS.core.is.Nill"]
+        , "array": [":TruJS.core.is.Array"]
+        , "string": [":TruJS.core.is.String"]
+        , "object": [":TruJS.core.is.Object"]
+        , "regexp": [":TruJS.core.is.RegExp"]
+        , "empty": [":TruJS.core.is.Empty"]
+        , "numeric": [":TruJS.core.is.Numeric"]
+    }]
+    , "endpoint": [{
+        "gatekeeper": [":TruJS.state._Gatekeeper",[]]
+        , "listenerManager": [":TruJS.state._ListenerManager",[]]
+        , "listenerPrototype": [":TruJS.state._ListenerPrototype",[]]
+        , "stateManager": [":TruJS.state._StateManager",[]]
+        , "externalConnection": null
+        , "initialState": {}
+    }]
+}
