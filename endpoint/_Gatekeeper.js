@@ -8,19 +8,16 @@
 *   @singleton
 */
 function _Gatekeeper(
-    endpoint_listenerManager
-    , endpoint_externalConnection
-    , endpoint_stateManager
+    state_common_listenerManager
+    , state_common_stateManager
+    , state_endpoint_externalConnection
 ) {
-
 
     /**
     * @worker
     */
-    return function Gatekeeper (
+    return function Gatekeeper (config, updateHandler) {
 
-    ) {
-
-
+        return promise.resolve();
     };
 }

@@ -1,7 +1,32 @@
 {
-    "utils": [{
+    "promise": ["+Promise"]
+    , "timing": [{
+        "gregorianReform": ["+Date.UTC('1582', '9', '15', '0', '0', '0', '0')"]
+        , "timestamper": [":TruJS.core.timing._Timestamper",[]]
+    }]
+    , "errors": [
+        ":TruJS.state.common.Errors"
+        , ":TruJS.core.data.Errors"
+    ]
+    , "defaults": [
+        ":TruJS.state.common.Defaults"
+        , ":TruJS.core.data.Defaults"
+    ]
+    , "constants": [
+        ":TruJS.state.common.Constants"
+    ]
+    , "info": [
+        ":TruJS.state.common.Info"
+    ]
+    , "utils": [{
         "copy": [":TruJS.core.object.Copy"]
-        , "uuid": ["TruJS.core.data._Uuid", []]
+        , "uuid": [":TruJS.core.data._Uuid",[]]
+        , "update": [":TruJS.core.object.Update"]
+        , "apply": [":TruJS.core.object.Apply"]
+        , "applyIf": [":TruJS.core.object.ApplyIf"]
+        , "getType": [":TruJS.core.utils.GetType"]
+        , "array": [":TruJS.core.utils._Array", []]
+        , "arrayOfType": [".utils.array", ".ofType"]
     }]
     , "is": [{
         "error": [":TruJS.core.is.Error"]
@@ -12,13 +37,30 @@
         , "regexp": [":TruJS.core.is.RegExp"]
         , "empty": [":TruJS.core.is.Empty"]
         , "numeric": [":TruJS.core.is.Numeric"]
+        , "bool": [":TruJS.core.is.Bool"]
+        , "func": [":TruJS.core.is.Func"]
+        , "objectValue": [":TruJS.core.is.ObjectValue"]
+        , "uuid": [":TruJS.core.is.Uuid"]
     }]
-    , "endpoint": [{
-        "gatekeeper": [":TruJS.state._Gatekeeper",[]]
-        , "listenerManager": [":TruJS.state._ListenerManager",[]]
-        , "listenerPrototype": [":TruJS.state._ListenerPrototype",[]]
-        , "stateManager": [":TruJS.state._StateManager",[]]
-        , "externalConnection": null
-        , "initialState": {}
+    , "security": [{
+        "crypto": [":TruJS.core.security._Crypto", []]
+        , "fillRandomBytes": [".security.crypto",".fillRandomBytes", {
+            "bind": {
+                "scope": [".security.crypto"]
+            }
+        }]
+    }]
+    , "state": [{
+        "common": [{
+            "listenerManager": [":TruJS.state.common._ListenerManager",[]]
+            , "listener": [":TruJS.state.common._Listener",[]]
+            , "stateManager": [":TruJS.state.common._StateManager",[]]
+        }]
+        , "endpoint": [{
+            "endpointInit": [":TruJS.state.endpoint._EndpointInit", []]
+            , "endpoint": [":TruJS.state.endpoint._Endpoint",[]]
+            , "gatekeeper": [":TruJS.state.endpoint._Gatekeeper",[]]
+            , "externalConnection": null
+        }]
     }]
 }

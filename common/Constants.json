@@ -1,0 +1,54 @@
+{
+    "instructions": [
+        "__parent"
+        , "__namespace"
+        , "__nowatch"
+        , "__mutibility"
+        , "__access"
+        , "__shared"
+        , "__async"
+        , "__concurrent"
+        , "__descriptors"
+        , "__last"
+        , "__revokable"
+        , "__proxy"
+        , "__config"
+        , "__noref"
+        , "__name"
+    ]
+    , "readOnly": [
+        "__name"
+        , "__namespace"
+        , "__async"
+        , "__concurrent"
+        , "__last"
+    ]
+    , "internalOnly": [
+        "__descriptors"
+        , "__shared"
+        , "__parent"
+        , "__access"
+        , "__revokable"
+        , "__proxy"
+        , "__config"
+    ]
+     , "traps": [
+        "get"
+        , "set"
+        , "has"
+        , "getOwnPropertyDescriptor"
+        , "ownKeys"
+        , "deleteProperty"
+    ]
+    , "metaTraps": [
+        "defineProperty"
+        , "setPrototypeOf"
+        , "preventExtensions"
+        , "getPrototypeOf"
+        , "isExtensible"
+    ]
+    , "functionTraps": [
+        "apply"
+        , "construct"
+    ]
+}
