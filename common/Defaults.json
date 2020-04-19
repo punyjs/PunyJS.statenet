@@ -1,0 +1,21 @@
+{
+    "statenet": {
+        "endpoint": {
+            "config": {
+
+            }
+        }
+        , "stateManager": {
+            "config": {
+                "paging": false
+            }
+            , "instructions": {
+                "__nowatch": false
+                , "__mutibility": "freeze"
+                , "__async": false
+                , "__concurrent": false
+                , "__noref": true
+            }
+        }
+    }
+}

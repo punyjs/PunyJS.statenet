@@ -1,0 +1,4 @@
+{
+    "trap_handler_fired": "[Trap Handler Fired] A trap handler has been fired:"
+    , "instruction_handler_fired": "[Instruction Handler Fired] A trap handler for an instruction property has been fired:"
+}
