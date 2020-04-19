@@ -1,0 +1,19 @@
+{
+    "fileLoader": [":TruJS.core.fs._FileLoader",[]]
+    , "node": [{
+        "path": ["+require('path')"]
+        , "fs":  ["+require('fs')"]
+        , "process": ["+require('process')"]
+        , "crypto": ["+require('crypto')"]
+        , "buffer": ["+Buffer"]
+    }]
+    , "browser":[{
+        "performance": null
+        , "crypto": null
+    }]
+    , "state": [{
+        "endpoint": [{
+            "init": [":TruJS.state.endpoint._InitNode",[]]
+        }]
+    }]
+}

@@ -1,0 +1,23 @@
+{
+    "errors": [
+        ":TruJS.core.net.http.Errors"
+        , {"conflictResolution": "error"}
+    ]
+    , "node": [{
+        "process": null
+        , "crypto": null
+        , "buffer": null
+    }]
+    , "browser":[{
+        "url": ["+URL"]
+        , "performance": ["+performance"]
+        , "crypto": ["+window.crypto"]
+    }]
+    , "httpRequest": ["+XMLHttpRequest"]
+    , "fileLoader": [":TruJS.core.net.http._FileLoader",[]]
+    , "state": [{
+        "endpoint": [{
+            "init": [":TruJS.state.endpoint._InitBrowser",[]]
+        }]
+    }]
+}
