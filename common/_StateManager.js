@@ -437,7 +437,7 @@ function _StateManager(
         //
         switch(action) {
             case "get":
-                returnValue = target[propName];
+                returnValue = newValue = target[propName];
                 break;
             case "miss_get":
                 //see if this is a prototype
@@ -467,10 +467,10 @@ function _StateManager(
                 break;
             case "has":
                 //handles the `in` operator
-                returnValue = true;
+                returnValue = newValue = true;
                 break;
             case "miss_has":
-                returnValue = false;
+                returnValue = newValue = false;
                 break;
             case "delete":
                 removeObject(
@@ -481,11 +481,12 @@ function _StateManager(
                     namespace
                 );
                 //remove the object from the target
-                delete target[propName];
+                newValue = delete target[propName];
+                returnValue = true;
                 break;
             case "getOwn":
                 //handles Object.getOwnPropertyDescriptor() and {object}.hasOwnProperty()
-                returnValue = Object.getOwnPropertyDescriptor(
+                returnValue = newValue = Object.getOwnPropertyDescriptor(
                     target
                     , propName
                 );
@@ -497,7 +498,7 @@ function _StateManager(
                 break;
             case "ownKeys":
                 //handles Object.getOwnPropertyNames(), Object.getOwnPropertySymbols() and Object.keys()
-                returnValue = Object.keys(target)
+                returnValue = newValue = Object.keys(target)
                     .filter(function filterKeys(key) {
                         if (isInstruction(key)) {
                             return constants
@@ -528,7 +529,7 @@ function _StateManager(
         listenerManager.fireListener(
             namespace
             , action
-            , returnValue
+            , newValue
         );
 
         return returnValue;
