@@ -2,64 +2,60 @@
     "promise": ["+Promise"]
     , "timing": [{
         "gregorianReform": ["+Date.UTC('1582', '9', '15', '0', '0', '0', '0')"]
-        , "timestamper": [":TruJS.core.timing._Timestamper",[]]
+        , "timestamper": [":PunyJS.core.timing._Timestamper",[]]
     }]
     , "errors": [
-        ":TruJS.state.common.Errors"
-        , ":TruJS.core.data.Errors"
+        ":PunyJS.statenet.common.Errors"
+        , ":PunyJS.core.data.Errors"
     ]
     , "defaults": [
-        ":TruJS.state.common.Defaults"
-        , ":TruJS.core.data.Defaults"
+        ":PunyJS.statenet.common.Defaults"
+        , ":PunyJS.core.data.Defaults"
     ]
     , "constants": [
-        ":TruJS.state.common.Constants"
+        ":PunyJS.statenet.common.Constants"
     ]
     , "info": [
-        ":TruJS.state.common.Info"
+        ":PunyJS.statenet.common.Info"
     ]
     , "utils": [{
-        "copy": [":TruJS.core.object.Copy"]
-        , "uuid": [":TruJS.core.data._Uuid",[]]
-        , "update": [":TruJS.core.object.Update"]
-        , "apply": [":TruJS.core.object.Apply"]
-        , "applyIf": [":TruJS.core.object.ApplyIf"]
-        , "getType": [":TruJS.core.utils.GetType"]
-        , "array": [":TruJS.core.utils._Array", []]
+        "copy": [":PunyJS.core.object.Copy"]
+        , "uuid": [":PunyJS.core.data._Uuid",[]]
+        , "update": [":PunyJS.core.object.Update"]
+        , "apply": [":PunyJS.core.object.Apply"]
+        , "applyIf": [":PunyJS.core.object.ApplyIf"]
+        , "getType": [":PunyJS.core.utils.GetType"]
+        , "array": [":PunyJS.core.array._Array", []]
         , "arrayOfType": [".utils.array", ".ofType"]
     }]
     , "is": [{
-        "error": [":TruJS.core.is.Error"]
-        , "nill": [":TruJS.core.is.Nill"]
-        , "array": [":TruJS.core.is.Array"]
-        , "string": [":TruJS.core.is.String"]
-        , "object": [":TruJS.core.is.Object"]
-        , "regexp": [":TruJS.core.is.RegExp"]
-        , "empty": [":TruJS.core.is.Empty"]
-        , "numeric": [":TruJS.core.is.Numeric"]
-        , "bool": [":TruJS.core.is.Bool"]
-        , "func": [":TruJS.core.is.Func"]
-        , "objectValue": [":TruJS.core.is.ObjectValue"]
-        , "uuid": [":TruJS.core.is.Uuid"]
+        "error": [":PunyJS.core.is.Error"]
+        , "nill": [":PunyJS.core.is.Nill"]
+        , "array": [":PunyJS.core.is.Array"]
+        , "string": [":PunyJS.core.is.String"]
+        , "object": [":PunyJS.core.is.Object"]
+        , "regexp": [":PunyJS.core.is.RegExp"]
+        , "empty": [":PunyJS.core.is.Empty"]
+        , "numeric": [":PunyJS.core.is.Numeric"]
+        , "bool": [":PunyJS.core.is.Bool"]
+        , "func": [":PunyJS.core.is.Func"]
+        , "objectValue": [":PunyJS.core.is.ObjectValue"]
+        , "uuid": [":PunyJS.core.is.Uuid"]
     }]
     , "security": [{
-        "crypto": [":TruJS.core.security._Crypto", []]
-        , "fillRandomBytes": [".security.crypto",".fillRandomBytes", {
-            "bind": {
-                "scope": [".security.crypto"]
-            }
-        }]
+        "crypto": [":PunyJS.core.security._Crypto", []]
+        , "fillRandomBytesSync": [".security.crypto",".fillRandomBytesSync"]
     }]
     , "state": [{
         "common": [{
-            "listenerManager": [":TruJS.state.common._ListenerManager",[]]
-            , "listener": [":TruJS.state.common._Listener",[]]
-            , "stateManager": [":TruJS.state.common._StateManager",[]]
+            "listenerManager": [":PunyJS.statenet.common._ListenerManager",[]]
+            , "listener": [":PunyJS.statenet.common._Listener",[]]
+            , "stateManager": [":PunyJS.statenet.common._StateManager",[]]
         }]
         , "endpoint": [{
-            "endpointInit": [":TruJS.state.endpoint._EndpointInit", []]
-            , "endpoint": [":TruJS.state.endpoint._Endpoint",[]]
-            , "gatekeeper": [":TruJS.state.endpoint._Gatekeeper",[]]
+            "endpointInit": [":PunyJS.statenet.endpoint._EndpointInit", []]
+            , "endpoint": [":PunyJS.statenet.endpoint._Endpoint",[]]
+            , "gatekeeper": [":PunyJS.statenet.endpoint._Gatekeeper",[]]
             , "externalConnection": null
         }]
     }]

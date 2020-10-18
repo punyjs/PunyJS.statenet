@@ -1,6 +1,6 @@
 {
     "errors": [
-        ":TruJS.core.net.http.Errors"
+        ":PunyJS.core.net.http.Errors"
         , {"conflictResolution": "error"}
     ]
     , "node": [{
@@ -14,10 +14,10 @@
         , "crypto": ["+window.crypto"]
     }]
     , "httpRequest": ["+XMLHttpRequest"]
-    , "fileLoader": [":TruJS.core.net.http._FileLoader",[]]
+    , "fileLoader": [":PunyJS.core.net.http._FileLoader",[]]
     , "state": [{
         "endpoint": [{
-            "init": [":TruJS.state.endpoint._InitBrowser",[]]
+            "init": [":PunyJS.statenet.endpoint._InitBrowser",[]]
         }]
     }]
 }
