@@ -32,23 +32,4 @@
         , "__proxy"
         , "__config"
     ]
-     , "traps": [
-        "get"
-        , "set"
-        , "has"
-        , "getOwnPropertyDescriptor"
-        , "ownKeys"
-        , "deleteProperty"
-    ]
-    , "metaTraps": [
-        "defineProperty"
-        , "setPrototypeOf"
-        , "preventExtensions"
-        , "getPrototypeOf"
-        , "isExtensible"
-    ]
-    , "functionTraps": [
-        "apply"
-        , "construct"
-    ]
 }

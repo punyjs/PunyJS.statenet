@@ -44,8 +44,8 @@ function _ListenerManager (
                 , "lookup": /(?:^|[.])\$all$/
             }
             , "$every": {
-                "substitution": "(?:[^.]+)"
-                , "lookup": /(?:^|[.])\$every(?:[.]|$)/g
+                "substitution": "$1(?:[^.]+)$2"
+                , "lookup": /(^|\[[.]\])\$every(\[[.]\]|$)/g
             }
         }
     }
@@ -59,6 +59,11 @@ function _ListenerManager (
     * @property
     */
     , NAMESPACE_PATT = /^(?:[A-z0-9_$]+(?:[.](?!$)|$))+$/
+    /**
+    * A regular expression pattern for escaping $ in the namespace
+    * @property
+    */
+    , DOLLAR_PATT = /[$](?!every|all|$)/g
     ;
 
     /**
@@ -66,19 +71,19 @@ function _ListenerManager (
     * @worker
     */
     return Object.create(Object, {
-        "hasListener": {
+        "$hasListener": {
             "enumerable": true
             , "value": hasListener
         }
-        , "addListener": {
+        , "$addListener": {
             "enumerable": true
             , "value": addListener
         }
-        , "removeListener": {
+        , "$removeListener": {
             "enumerable": true
             , "value": removeListener
         }
-        , "fireListener": {
+        , "$fireListener": {
             "enumerable": true
             , "value": fireListener
         }
@@ -103,7 +108,7 @@ function _ListenerManager (
         );
         if (utils_arrayOfType(handlers) !== "function") {
             throw new Error(
-                `${errors.invalid_handler}`
+                `${errors.statenet.invalid_handler}`
             );
         }
         ///END INPUT VALIDATION
@@ -185,68 +190,19 @@ function _ListenerManager (
             namespace
         );
         ///END INPUT VALIDATION
-        //the namspace could have selectors in it, so parse
-        var parsedNs = parseNamespace(
+        return getHandlers(
             namespace
-        )
-        //lookup the listener entry, creating the path if missing
-        , listenerEntry = getListenerEntry(
-            parsedNs.base
-        );
-        //return false if no listener entry was found
-        if(!!listenerEntry) {
-            //if this has a wildcard, see if it exists in the wildcards collection
-            if(!!parsedNs.wildcard) {
-                return listenerEntry.wildcards
-                    .hasOwnProperty(parsedNs.wildcard);
-            }
-            //otherwise it's a direct lookup, see if there are handlers
-            else if(!is_empty(listenerEntry.handlers)) {
-                return true;
-            }
-        }
-        //loop through the segments to see if there is a wildcard match in a parent branch
-        var scope = listener_tree;
-        for(let i = 0, l = parsedNs.segments.length - 1; i < l; i++) {
-            let name = parsedNs.segments[i];
-            //name doesn't exist, listener not found
-            if(!scope.hasOwnProperty(name)) {
-                return false;
-            }
-            //set the scope to the next branch
-            scope = scope[name];
-            //execute the callback function
-            if (scope.hasOwnProperty("wildcards")) {
-                for(let key in scope.wildcards) {
-                    let wildcard = scope.wildcards[key];
-                    if (wildcard.pattern.test(namespace)) {
-                        return true;
-                    }
-                }
-            }
-            //move to the next branch if there are children
-            if(!!scope.children) {
-                scope = scope.children;
-            }
-            //otherwise listener not found
-            else {
-                return false;
-            }
-        }
-
-        return false;
+        ).length !== 0
+        ;
     }
     /**
     * @function
     */
-    function removeListener(parentNamespace, uuids) {
-        if(!is_array(uuids)) {
+    function removeListener(uuids) {
+        if (!is_array(uuids)) {
             uuids = [uuids];
         }
         ///INPUT VALIDATION
-        validateNamespace(
-            parentNamespace
-        );
         validateUuids(
             uuids
         );
@@ -270,11 +226,6 @@ function _ListenerManager (
             }
             //if we didn't find a listener then exit
             if (!listenerEntry) {
-                return;
-            }
-            //see if this is coming from the parent namespace, if not don't proceed
-            if (namespace.indexOf(parentNamespace) === -1) {
-                ///TODO: determine if we should throw an error since this is not coming from the parent
                 return;
             }
             //remove the uuid from the direct handlers if no wild card
@@ -444,7 +395,7 @@ function _ListenerManager (
             store[uuid] = {
                 "func": handlers[i]
                 , "actions": actions
-            };
+            };console.log(uuid)
             uuidStoreMap[uuid] = namespace;
             uuids.push(uuid);
         }
@@ -458,17 +409,23 @@ function _ListenerManager (
         //the begining is the base namespace with the dots converted for regex
         var pattern = base.join("[.]");
         //update the dots in the wildcard
-        wildcard = wildcard.replace(DOT_PATT, "[.]");
-        //loop through the selectors and replace instances of each with their pattern
+        wildcard = wildcard
+            .replace(DOT_PATT, "[.]")
+        ;
+        //loop through the wildcard selectors and replace instances of each with their pattern
         Object.keys(cnsts.selectors)
         .forEach(function forEachSelector(selector) {
             var patt = cnsts.selectors[selector]
             , lookup = patt.lookup
-            , substitution = patt.substitution;
+            , substitution = patt.substitution
+            ;
             wildcard = wildcard.replace(lookup, substitution);
         });
         //add the newly updated wildcard to the pattern
         pattern+= `[.]${wildcard}`;
+        pattern = pattern
+            .replace(DOLLAR_PATT, "\\$")
+        ;
         //create the regular expression object
         return new RegExp(pattern);
     }
@@ -498,7 +455,7 @@ function _ListenerManager (
             }
             //set the scope to the next branch
             scope = scope[name];
-            //execute the callback function
+            //check any wildcards for this scope
             if (scope.hasOwnProperty("wildcards")) {
                 for(let key in scope.wildcards) {
                     let wildcard = scope.wildcards[key];
@@ -528,7 +485,7 @@ function _ListenerManager (
     function validateNamespace(namespace) {
         if (!NAMESPACE_PATT.test(namespace)) {
             throw new Error(
-                `${errors.invalid_namespace}`
+                `${errors.statenet.invalid_namespace} (${namespace})`
             );
         }
     }
@@ -539,7 +496,7 @@ function _ListenerManager (
         for(let i = 0, l = uuids.length; i < l; i++) {
             if (!is_uuid(uuids[i])) {
                 throw Error(
-                    `${errors.invalid_listener_uuid} (${uuids[i]})`
+                    `${errors.statenet.invalid_listener_uuid} (${uuids[i]})`
                 );
             }
         }

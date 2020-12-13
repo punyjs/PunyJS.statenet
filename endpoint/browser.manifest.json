@@ -1,0 +1,23 @@
+{
+    "config": {
+        "engine": "browser"
+    }
+    , "entries": [
+        {
+            "type": "ioc.monolith"
+            , "dtree": "{PunyJS.statenet.endpoint}/browser.dtree.json"
+        }
+        , {
+            "type": "test"
+            , "config": {
+                "output": "PunyJS/statenet"
+                , "fileName": "${config.engine}.test.json"
+            }
+            , "units": {
+                "controller": "browser-ioc-controller"
+                , "app": -1
+            }
+        }
+        , "{PunyJS.ioc.manifests}/browser.manifest.json"
+    ]
+}

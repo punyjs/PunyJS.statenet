@@ -1,11 +1,13 @@
 {
-    "prevent_extensions_invalid": "[Prevent Extensions Invalid] Unable to execute the 'preventExtensions' method on the object; accessibility is handled internally."
-    , "not_implemented": "[Not Implemented] This feature has not yet been implemented."
-    , "unauthorized_access": "[Unauthorized Access] The caller is not authorized to access this state property."
-    , "invalid_handler": "[Invalid Listener] The listener handler must be a function."
-    , "illegal_listener_operation": "[Illegal Listener Operation] Listener methods are read only."
-    , "invalid_namespace": "[Invalid Namespace] Namespaces must "
-    , "invalid_listener_uuid": "[Invalid Listener UUID] "
-    , "set_instruction_failed_readonly": "[Set Instruction Failed Readonly] The instruction property being set is read-only."
-    , "access_instruction_failed_internalonly": "[Access Instruction Failed Internalonly] The instruction property is only accessable internally."
+    "statenet": {
+        "prevent_extensions_invalid": "[Prevent Extensions Invalid] Unable to execute the 'preventExtensions' method on the object; accessibility is handled internally."
+        , "not_implemented": "[Not Implemented] This feature has not yet been implemented."
+        , "unauthorized_access": "[Unauthorized Access] The caller is not authorized to access this state property."
+        , "invalid_handler": "[Invalid Listener] The listener handler must be a function."
+        , "illegal_listener_operation": "[Illegal Listener Operation] Listener methods are read only."
+        , "invalid_namespace": "[Invalid Namespace] Namespaces must "
+        , "invalid_listener_uuid": "[Invalid Listener UUID] The listener UUID is invalid"
+        , "set_instruction_failed_readonly": "[Set Instruction Failed Readonly] The instruction property being set is read-only."
+        , "access_instruction_failed_internalonly": "[Access Instruction Failed Internalonly] The instruction property is only accessable internally."
+    }
 }

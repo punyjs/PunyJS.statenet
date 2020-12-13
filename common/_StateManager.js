@@ -1,10 +1,13 @@
-/**
+ /**
 * The state manager controls access to the state data. It monitors reads and writes, enforces accessibility and mutability rules, and executes change handlers for any listers.
 * The worker function is a singleton that initializes the state once. Any subsequent calls will only return the initialized state.
 * The object returned by the worker function is the root state proxy. The proxy is created using the initial state, if provided, and is configured using any instruction properties on the initial state object.
 * The state manager factory can be executed 1..n times to create 1..n independent state proxies. This provide the ability to use several independent state controls in a single application.
 * Properties on the root state that are objects will be treated as branches of the root state, inheriting instructions, as well as having the option to define their own instructions.
-* State instructions are used to configure the object in which they reside. The state manager processes the instructions when an object is added to the state.
+
+
+
+
 * @factory
 *   @dependency {object} promise The global promise built-in
 *   @dependency {function} utils_uuid
@@ -32,6 +35,7 @@
 */
 function _StateManager(
     promise
+    , performance
     , state_common_listenerManager
     , state_common_listener
     , utils_uuid
@@ -40,9 +44,11 @@ function _StateManager(
     , utils_applyIf
     , utils_apply
     , utils_getType
+    , weakMap
     , is_object
     , is_objectValue
-    , is_uuid
+    , is_func
+    , is_array
     , reporter
     , defaults
     , constants
@@ -64,6 +70,16 @@ function _StateManager(
     * @alias
     */
     , listener = state_common_listener
+    /**
+    * A weak map to store meta data about each target object
+    * @property
+    */
+    , metaMap = new weakMap()
+    /**
+    * The state manager's configuration
+    * @property
+    */
+    , configuration
     ;
 
     /**
@@ -74,80 +90,70 @@ function _StateManager(
     */
     return function StateManager(
         config
-        , rootState
+        , rootTarget
     ) {
-        try {
-            //initialize the state manager
-            initialize(
-                config
-                , rootState
-            );
-            //create the root state proxy
-            var proxy = createProxy(
-                root
-            );
-
-            return promise.resolve(proxy);
-        }
-        catch(ex) {
-            return promise.reject(ex);
-        }
+        //initialize the state manager
+        var meta = initialize(
+            config
+            , rootTarget
+        );
+        //create the root state proxy
+        return createProxy(
+            configuration.namespace || "$"
+            , rootTarget
+            , meta
+        );
     };
 
     /**
     * sets up the external storage and intakes the initial state if provided
     * @function
     */
-    function initialize(config, rootState = {}) {
-        //if the mem store has been setup then skip this
-        if (is_object(root)) {
+    function initialize(config, target = {}) {
+        //if the configuration has been setup then skip this
+        if (is_object(configuration)) {
             return;
         }
         //ensure we have a configuration, removing external references
-        config = is_object(config)
+        configuration = is_object(config)
             ? utils_copy(
                 config
             )
             : {}
         ;
         //add the defaults for any missing configuration
-        config = utils_update(
-            config
+        configuration = utils_update(
+            configuration
             , utils_copy(
                 defaults.statenet.stateManager.config
             )
         );
-        //add the config
-        rootState.__config = config;
-        //Intake the rootState
-        root = intakeObject(
-            config.namespace || ""
-            , rootState
-        );
-        //apply any instructions on the config object
-        if (config.hasOwnProperty("instructions")) {
-            ///INPUT VALIDATION
-            validateInstructions(
+
+        var meta = {};
+        //apply any instructions on the root meta object
+        if (configuration.hasOwnProperty("instructions")) {
+            utils_apply(
                 config.instructions
+                , meta
             );
-            ///END INPUT VALIDATION
-            utils_applyIf(
-                config.instructions
-                , root
-            );
+            delete configuration.instructions;
         }
-        //add missing instructions with defaults
+        //apply the defaults to the meta
         utils_applyIf(
-            defaults.statenet.stateManager.instructions
-            , root
-        );
+            utils_copy(
+                defaults.statenet.stateManager.instructions
+            )
+           , meta
+       );
 
         //if we're using paging then setup the external storage
-        if (root.__config.paging === true) {
+        if (configuration.paging === true) {
             setupExternalStorage(
 
             );
         }
+
+        return meta;
     }
     /**
     * Initializes the offline storage that will be used to page state branches
@@ -156,94 +162,81 @@ function _StateManager(
     function setupExternalStorage() {
         //TODO: setup offline storage
         throw new Error(
-            `${errors.not_implemented} (_StateManager.StateManager.setupExternalStorage)`
+            `${errors.statenet.statenet.not_implemented} (_StateManager.StateManager.setupExternalStorage)`
         );
     }
 
     /**
-    * Adds an object value to the catalog and returns a proxy object
     * @function
     */
-    function intakeObject(propName, objectValue, parent) {
-        ///INPUT VALIDATION
-        ///END INPUT VALIDATION
-        var targetObject = createTargetObject(
-            propName
-            , objectValue
-            , parent
-        );
-
-        //add the new state object to the store
-        if (!!parent) {
-            parent[propName] = targetObject;
-        }
-
-        return targetObject;
-    }
-    /**
-    * Uses the instructions in the meta data to create property descriptors and then creates the target object using those descriptors. The objectValue may be copied to remove references, at which point the property descriptors will point to the copied object.
-    * @function
-    */
-    function createTargetObject(propName, objectValue, parent) {
-        var namespace = propName
-        , target = objectValue
-        , noref = target.hasOwnProperty("__noref")
-            ? !!target.__noref
-            : true
+    function createProxy(name, target, parentMeta) {
+        var meta = metaMap.get(target)
+        , proxy
         ;
-        //if we don't want to preserve the external object reference
-        if (noref === true) {
+        //if there is no meta data then this must be our first encounter
+        if (!meta) {
+            meta = intakeTarget(
+                name
+                , target
+                , parentMeta
+            );
+        }
+        //see if we are going to watch
+        if (meta.__nowatch === true) {
+            return target;
+        }
+        //create a revokable proxy if marked
+        if (meta.__revokable === true) {
+            return Proxy.revocable(
+                target
+                , createTrapHandlers(
+                    meta
+                )
+            );
+        }
+        //otherwise create a normal proxy
+        else {
+            return new Proxy(
+                target
+                , createTrapHandlers(
+                    meta
+                )
+            );
+        }
+    }
+    /**
+    * @function
+    */
+    function intakeTarget(name, target, parentMeta) {
+        //get the meta data
+        var meta = extractMeta(
+            name
+            , target
+            , parentMeta
+        )
+        , targetCopy
+        ;
+        metaMap.set(target, meta);
+        if (is_func(target)) {
+            return meta;
+        }
+        //see if we are removing the reference from the external target
+        if (meta.__noref === true) {
+            targetCopy = utils_copy(
+                target
+            );
             //create the internal object, preserving the prototype
             target = Object.create(
-                Object.getPrototypeOf(objectValue)
+                Object.getPrototypeOf(target)
             );
             //apply a deep copy of the object value's properties.
             utils_apply(
-                utils_copy(objectValue)
+                targetCopy
                 , target
             );
         }
-        //add the parent uuid and namespace
-        if (!!parent) {
-            target.__parent = parent;
-            namespace = `${parent.__namespace}.${propName}`;
-        }
-        target.__name = propName;
-        target.__namespace = namespace;
-        target.__last = Date.now();
-        //update the property descriptors
-        Object.keys(target)
-        .forEach(function processEachProperty(key) {
-            //if this is an instruction, convert any to readonly
-            if (isInstruction(key)) {
-                var descriptor = {
-                    "enumerable": true
-                    , "value": target[key]
-                };
-                ///TODO: add logic to add to the descriptor based on the type of instruction it is, should we allow writing, or is it read only
-                if (constants.readOnly.indexOf(key) === -1) {
-                    descriptor.writable = true;
-                }
-                //define/re-define property
-                Object.defineProperty(
-                    target
-                    , key
-                    , descriptor
-                );
-            }
-            //intake any objects
-            else {
-                if (is_objectValue(target[key])) {
-                    intakeObject(
-                        key
-                        , target[key]
-                        , target
-                    );
-                }
-            }
-        });
         //add any descriptors from the meta
-        if (is_object(target.__descriptors)) {
+        if (is_object(meta.__descriptors)) {
             ///INPUT VALIDATION
             ///TODO: check to see if the descriptors are properly formatted
             ///END INPUT VALIDATION
@@ -252,305 +245,391 @@ function _StateManager(
                 , target.__descriptors
             );
         }
-
-        return target;
-    }
-    /**
-    * Removes an object from the mem store
-    * @function
-    */
-    function removeObject(target) {
-        if (!!target.__parent) {
-            delete target.__parent[target.__name];
-        }
-        //loop through the entry's properties, removing any objects recursively
-        for(var propKey in Object.keys(target)) {
-            if (is_objectValue(target[propKey])) {
-                removeObject(
-                    target[propKey]
-                );
-            }
-        }
-    }
-    /**
-    * Creates a proxy object for the uuid
-    * @function
-    */
-    function createProxy(target) {
-        if (target.__proxy) {
-            return target.__proxy;
-        }
-
-        if (target.__nowatch === true) {
-            target.__proxy = new Proxy(
-                target
-                , {}
-            );
-        }
-        else if (target.__revokable) {
-            //if we haven't created the revokable yet
-            if (target.__revokable === true) {
-                target.__revokable = Proxy.revocable(
-                    target
-                    , getTrapHandlers(
-                        target
-                    )
-                );
-            }
-            //get the revokable proxy
-            target.__proxy = target.__revokable.proxy;
-        }
-        else {
-            target.__proxy = new Proxy(
-                target
-                , getTrapHandlers(
-                    target
-                )
-            );
-        }
-
-        return target.__proxy;
-    }
-    /**
-    * @function
-    */
-    function revokeProxy(target) {
-        if (!!target.__revokable) {
-            target.__revokable.revoke();
-            delete target.__proxy;
-            delete target.__revokable;
-        }
-    }
-    /**
-    * @function
-    */
-    function getTrapHandlers(target) {
-        var traps = {};
-        //add the standard traps
-        for(let i = 0, l = constants.traps.length; i < l; i++) {
-            var trapName = constants.traps[i];
-            traps[trapName] =
-                processTrap.bind(null, trapName);
-        }
-        //add meta traps
-        ///TODO: add conditional statement for meta traps
-
-        //add function traps
-        ///TODO: add conditional statement for function traps
-
-        return traps;
-    }
-    /**
-    * @function
-    */
-    function processTrap(trapName, target, propName, ...args) {
-        propName = propName || "";
-        trapName = trapName
-            .replace("Property", "")
-            .replace("Descriptor", "")
-        ;
-        //see if this is a miss
-        var action = !!propName && !target.hasOwnProperty(propName)
-            ? `miss_${trapName}`
-            : trapName
-        , value = trapName === "set"
-            ? args[0]
-            : undefined
-        //see if this is an instruction, or listener method
-        , processed = preprocessTrap(
-            target
-            , trapName
-            , action
-            , propName
-            , value
-        );
-        //!undefined means that we've already processed the trap
-        if (processed !== undefined) {
-            //work around
-            if (processed === "undef") {
-                return;
-            }
-            return processed;
-        }
-        //run the trap handler for this trap name
-        return handleTrap(
-            target
-            , action
-            , propName
-            , value
-        );
-    }
-    /**
-    * @function
-    */
-    function preprocessTrap(target, trapName, action, propName, value) {
-        //check access and mutability, throwing an error if violated
-        hasAccess(
-            target
-            , action
-            , propName
-        );
-        //if the property name is `then` we'll assume async duck typing
-        if (propName === "then") {
-            return thenPropertyHandler(
-                target
-                , trapName
-                , propName
-            );
-        }
-        //if this is an instruction, then process independently
-        if (isInstruction(propName)) {
-            return instructionHandler(
-                target
-                , trapName
-                , propName
-                , value
-            );
-        }
-        //see if it's a listener method
-        if (listener.hasOwnProperty(propName)) {
-            return listenerMethodHandler(
-                target
-                , trapName
-                , propName
-            );
-        }
-        ///LOGGING
-        reporter.state(
-            `${info.trap_handler_fired} ${action} ${propName}`
-        );
-        ///END LOGGING
-    }
-    /**
-    * Creates the handler token and concatinates is with the function call arguments.
-    * @function
-    */
-    function handleTrap(target, action, propName, newValue) {
-        //get the current value
-        var namespace = !!propName
-            ? `${target.__namespace}.${propName}`
-            : target.__namespace
-        , value = target[propName]
-        , returnValue
-        , skipProxy = false
-        ;
-        //
-        switch(action) {
-            case "get":
-                returnValue = newValue = target[propName];
-                break;
-            case "miss_get":
-                //see if this is a prototype
-                if (propName in target) {
-                    return target[propName];
+        //process the target propertes
+        Object.keys(target)
+        .forEach(
+            function forEachKey(key) {
+                var value = target[key];
+                //prototype properties should not be trapped
+                if (!target.hasOwnProperty(key)) {
+                    return;
                 }
-                break;
-            case "set":
-                action = "change";
-                //see if we changed the type
-                if (utils_getType(newValue) !== utils_getType(value)) {
-                    action = "type_change";
-                }
-                //remove the old object
-                if (is_objectValue(value)) {
-                    removeObject(
-                        value
+                if (is_objectValue(value) || is_func(value)) {
+                    intakeTarget(
+                        key
+                        , value
+                        , meta
                     );
                 }
-                target[propName] = newValue;
-                returnValue = true;
-                break;
-            case "miss_set":
-                action = "new";
-                target[propName] = newValue;
-                returnValue = true;
-                break;
-            case "has":
-                //handles the `in` operator
-                returnValue = newValue = true;
-                break;
-            case "miss_has":
-                returnValue = newValue = false;
-                break;
-            case "delete":
-                removeObject(
-                    value.__uuid
-                );
-                //remove listeners
-                listenerManager.removeListener(
-                    namespace
-                );
-                //remove the object from the target
-                newValue = delete target[propName];
-                returnValue = true;
-                break;
-            case "getOwn":
-                //handles Object.getOwnPropertyDescriptor() and {object}.hasOwnProperty()
-                returnValue = newValue = Object.getOwnPropertyDescriptor(
-                    target
-                    , propName
-                );
-                skipProxy = true;
-                break;
-            case "miss_getOwn":
-                returnValue = false;
-                skipProxy = true;
-                break;
-            case "ownKeys":
-                //handles Object.getOwnPropertyNames(), Object.getOwnPropertySymbols() and Object.keys()
-                returnValue = newValue = Object.keys(target)
-                    .filter(function filterKeys(key) {
-                        if (isInstruction(key)) {
-                            return constants
-                                .internalOnly
-                                .indexOf(propName) === -1
-                            ;
-                        }
-                        return true;
-                    });
-                skipProxy = true;
-                break;
-        }
-        //intake and create a proxy for new objects
-        if (!skipProxy && is_objectValue(returnValue)) {
-            if (action === "new") {
-                returnValue = intakeObject(
-                    propName
-                    , returnValue
-                    , target
-                );
-                target[propName] = returnValue;
             }
-            returnValue = createProxy(
-                returnValue
+        );
+
+        return meta;
+    }
+    /**
+    * @function
+    */
+    function extractMeta(name, target, parentMeta) {
+        var meta;
+        //if the target is an array, and the first member is an object, with instruction properties, then that is the meta
+        if (is_array(target) && is_object(target[0])) {
+            meta = extractArrayMeta(
+                name
+                , target
             );
         }
-        //fire the listeners
-        listenerManager.fireListener(
-            namespace
-            , action
-            , newValue
+        //if the target is an object then find any properties that map to instructions
+        else {
+            meta = extraObjectMeta(
+                name
+                , target
+            );
+        }
+        //set the naming
+        meta.__name = name;
+        meta.__namespace = !!parentMeta && !!parentMeta.__namespace
+            ? `${parentMeta.__namespace}.${name}`
+            : name
+        ;
+        //set the initial timestamp
+        meta.__last = performance.now();
+        //apply the parentMeta for any missing
+        utils_applyIf(
+            parentMeta
+            , meta
         );
+
+        return meta;
+    }
+    /**
+    * @function
+    */
+    function extraObjectMeta(name, target) {
+        var meta = {};
+
+        Object.keys(target)
+        .forEach(
+            function checkEachKey(key) {
+                if (isInstruction(key)) {
+                    meta = target[key];
+                    delete target[key];
+                }
+            }
+        );
+
+        return meta;
+    }
+    /**
+    * @function
+    */
+    function extractArrayMeta(name, target) {
+        var isMeta =
+            Object.keys(target[0])
+            .every(
+                function everyPropIsInstruction(key) {
+                    return isInstruction(key);
+                }
+            )
+        ;
+        if (isMeta) {
+            return target.shift();
+        }
+        else {
+            return {};
+        }
+    }
+
+    /**
+    * @function
+    */
+    function createTrapHandlers(meta) {
+        return {
+            "get": getTrap.bind(null, meta)
+            , "set": setTrap.bind(null, meta)
+            , "deleteProperty": deleteTrap.bind(null, meta)
+            , "apply": applyTrap.bind(null, meta)
+            , "has": hasTrap.bind(null, meta)
+            , "ownKeys": ownKeysTrap.bind(null, meta)
+        };
+    }
+    /**
+    * @function
+    */
+    function getTrap(meta, target, propName) {
+        //the state doesn't use symbols, passthrough
+        if (typeof propName === "symbol") {
+            return target[propName];
+        }
+        //verify access
+        hasAccess(
+            meta
+            , "get"
+            , propName
+        );
+        //if this is an instruction then process it
+        if (isInstruction(propName)) {
+            return instructionHandler(
+                meta
+                , "get"
+                , propName
+            );
+        }
+        //if this is a listener then process it
+        if (listenerManager.hasOwnProperty(propName)) {
+            return listenerMethodHandler(
+                meta
+                , "get"
+                , propName
+            );
+        }
+        //prototype properties should not be trapped
+        if (!target.hasOwnProperty(propName)) {
+            return target[propName];
+        }
+
+        var hasProp = target.hasOwnProperty(propName)
+        , namespace = !!meta.__namespace
+            ? `${meta.__namespace}.${propName}`
+            : propName
+        , returnValue = target[propName]
+        ;
+        //intake and create a proxy for new objects
+        if (is_objectValue(returnValue) || is_func(returnValue)) {
+            returnValue = createProxy(
+                propName
+                , returnValue
+                , meta
+            );
+        }
+        //fire any listeners
+        listenerManager.$fireListener(
+            namespace
+            , "get"
+            , {
+                "namespace": namespace
+                , "trap": "get"
+                , "miss": !hasProp
+                , "value": returnValue
+            }
+        );
+        ///LOGGING
+        reporter.state(
+            `${info.trap_handler_fired} get ${propName}`
+        );
+        ///END LOGGING
 
         return returnValue;
     }
     /**
+    * @function
+    */
+    function setTrap(meta, target, propName, value) {
+        //the state doesn't use symbols, passthrough
+        if (typeof propName === "symbol") {
+            target[propName] = value;
+            return true;
+        }
+        //verify access
+        hasAccess(
+            meta
+            , "apply"
+            , propName
+        );
+        //if this is an instruction then process it
+        if (isInstruction(propName)) {
+            return instructionHandler(
+                meta
+                , "set"
+                , propName
+                , value
+            );
+        }
+        //if this is a listener then process it
+        if (listenerManager.hasOwnProperty(propName)) {
+            return listenerMethodHandler(
+                meta
+                , "set"
+                , propName
+            );
+        }
+
+        var hasProp = target.hasOwnProperty(propName)
+        , namespace = !!meta.__namespace
+            ? `${meta.__namespace}.${propName}`
+            : propName
+        , oldValue = target[propName]
+        , result = target[propName] = value
+        , typeChange = false
+        ;
+        //see if we changed the type
+        if (!!hasProp && utils_getType(oldValue) !== utils_getType(value)) {
+            typeChange = true;
+        }
+        //fire any listeners
+        listenerManager.$fireListener(
+            namespace
+            , "set"
+            , {
+                "namespace": namespace
+                , "trap": "set"
+                , "miss": !hasProp
+                , "typeChange": typeChange
+                , "oldValue": oldValue
+                , "success": !!result
+            }
+        );
+        ///LOGGING
+        reporter.state(
+            `${info.trap_handler_fired} set ${propName}`
+        );
+        ///END LOGGING
+
+        return true;
+    }
+    /**
+    * @function
+    */
+    function deleteTrap(meta, target, propName) {
+        //the state doesn't use symbols, passthrough
+        if (typeof propName === "symbol") {
+            return delete target[propName];
+        }
+        //verify access
+        hasAccess(
+            meta
+            , "apply"
+            , propName
+        );
+        //if this is an instruction then process it
+        if (isInstruction(propName)) {
+            return instructionHandler(
+                meta
+                , "delete"
+                , propName
+                , value
+            );
+        }
+        //if this is a listener then process it
+        if (listenerManager.hasOwnProperty(propName)) {
+            return listenerMethodHandler(
+                meta
+                , "delete"
+                , propName
+            );
+        }
+
+        var hasProp = target.hasOwnProperty(propName)
+        , namespace = !!meta.__namespace
+            ? `${meta.__namespace}.${propName}`
+            : propName
+        , result = delete target[propName]
+        ;
+        //fire any listeners
+        listenerManager.$fireListener(
+            namespace
+            , "delete"
+            , {
+                "namespace": namespace
+                , "trap": "delete"
+                , "miss": !hasProp
+                , "success": result
+            }
+        );
+        ///LOGGING
+        reporter.state(
+            `${info.trap_handler_fired} delete ${propName}`
+        );
+        ///END LOGGING
+
+        return result;
+    }
+    /**
+    * @function
+    */
+    function applyTrap(meta, target, thisArg, argList) {
+        //verify access
+        hasAccess(
+            meta
+            , "apply"
+        );
+        //run the function and store the result
+        var result = target
+            .apply(
+                thisArg
+                , argList
+            )
+        ;
+        //fire any listeners
+        listenerManager.$fireListener(
+            meta.__namespace
+            , "apply"
+            , {
+                "namespace": meta.__namespace
+                , "trap": "apply"
+                , "scope": thisArg
+                , "arguments": argList
+            }
+        );
+        ///LOGGING
+        reporter.state(
+            `${info.trap_handler_fired} apply ${meta.__namespace}`
+        );
+        ///END LOGGING
+
+        return result;
+    }
+    /**
+    * @function
+    */
+    function hasTrap(meta, target, propName) {
+        if (typeof propName !== "symbol") {
+            if (listenerManager.hasOwnProperty(propName)) {
+                return true;
+            }
+        }
+        return propName in target;
+    }
+    /**
+    * @function
+    */
+    function ownKeysTrap(meta, target) {
+        var keys = Object.getOwnPropertyNames(target)
+        , symbolKeys = Object.getOwnPropertySymbols(target)
+        , listenerKeys = Object.keys(listenerManager)
+        ;
+        //filterr out internal instructions
+        keys = keys.filter(
+            function filterKeys(key) {
+                if (constants.internalOnly.indexOf(key) === -1) {
+                    return true;
+                }
+                return false;
+            }
+        );
+        //combine the keys
+        return keys
+            .concat(symbolKeys)
+            .concat(listenerKeys)
+        ;
+    }
+
+    /**
     * Checks to see if the caller has permissions to access this property
     * @function
     */
-    function hasAccess(target, trapName, propName) {
+    function hasAccess(meta, trapName, propName) {
         var hasAccess = true;
         ///TODO: add permissions code
         if(!hasAccess) {
             throw new Error(
-                `${errors.unauthorized_access} (${action} ${propName})`
+                `${errors.statenet.unauthorized_access} (${action} ${propName})`
             );
         }
     }
     /**
     * @function
     */
-    function instructionHandler(target, action, propName, value) {
+    function instructionHandler(meta, action, propName, value) {
         ///LOGGING
         reporter.state(
             `${info.instruction_handler_fired} ${action} ${propName}`
@@ -558,36 +637,14 @@ function _StateManager(
         ///END LOGGING
         //if this is internal
         if (constants.internalOnly.indexOf(propName) !== -1) {
-            if (action === "has") {
-                return false;
-            }
-            else if (action === "set") {
-                if (propName === "__revoke" && value == true) {
-                    revokeProxy(
-                        target
-                    );
-                    return true;
-                }
-            }
-            else if (action === "getOwn") {
-                return "undef";
-            }
             throw new Error(
-                `${errors.access_instruction_failed_internalonly} (${propName})`
+                `${errors.statenet.access_instruction_failed_internalonly} (${propName})`
             );
         }
         else if (action === "get") {
             //local instruction property
-            if (target.hasOwnProperty(propName)) {
-                return target[propName];
-            }
-            //otherwise lookup the property on the parent
-            else if (!!target.parent) {
-                return instructionHandler(
-                    parent
-                    , action
-                    , propName
-                );
+            if (meta.hasOwnProperty(propName)) {
+                return meta[propName];
             }
             else {
                 return;
@@ -599,79 +656,57 @@ function _StateManager(
                     `${errors.set_instruction_failed_readonly} (${propName})`
                 );
             }
-            target[instruction] = value;
-            if (propName === "__nowatch") {
-                createProxy(
-                    target
-                );
+            meta[instruction] = value;
+        }
+        throw new Error(
+            `${errors.statenet.invalid_op_instruction} (${propName} ${action})`
+        );
+    }
+    /**
+    * @function
+    */
+    function listenerMethodHandler(meta, trapName, propName) {
+        if (trapName === "get") {
+            //wrap the listener methods to insert the meta namspace on the namespace passed to the handler
+            if (
+                propName === "$addListener"
+                || propName === "$hasListener"
+                || propName === "$fireListener"
+            ) {
+                return function wrappedListenerMethod(...args) {
+                    args[0] = `${meta.__namespace}.${args[0]}`;
+                    return listenerManager[propName].apply(null, args);
+                };
+            }
+            else if (propName === "$removeListener") {
+                return function wrappedRemoveListener(uuids) {
+                    return listenerManager[propName].apply(
+                        null
+                        , [meta.__namespace, uuids]
+                    );
+                };
             }
         }
-        else if (action === "has") {
-            return target.hasOwnProperty(propName);
-        }
-        else if (action === "getOwn") {
-            return;
-        }
-        else if (action === "ownKeys") {
-            Object.keys(target)
-                .filter(function filterKeys(key) {
-                    if (isInstruction(key)) {
-                        return constants
-                            .internalOnly
-                            .indexOf(propName) === -1
-                        ;
-                    }
-                    return false;
-                });
-        }
         throw new Error(
-            `${errors.invalid_op_instruction} (${propName} ${action})`
+            `${errors.statenet.illegal_listener_operation} (${trapName} ${propName})`
         );
-    }
-    /**
-    * @function
-    */
-    function listenerMethodHandler(target, trapName, propName) {
-        if (trapName === "get") {
-            return listener[propName].bind(null, target.__namespace);
-        }
-        throw new Error(
-            `${errors.illegal_listener_operation} (${trapName} ${propName})`
-        );
-    }
-    /**
-    * @function
-    */
-    function thenPropertyHandler(token, trapName, propName) {
-        ///TODO: figure out how to use the `then` and `catch` and `finally` promise methods
-        return false;
     }
     /**
     * @function
     */
     function isInstruction(propName) {
-        if(
+        if (typeof propName === "symbol") {
+            return false;
+        }
+        if (!propName.indexOf) {
+            debugger;
+        }
+        if (
             propName.indexOf("__") === 0
             && constants.instructions.indexOf(propName) !== -1
         ) {
             return true;
         }
         return false;
-    }
-    /**
-    * @function
-    */
-    function validateInstructions(instructions) {
-        if(!is_object(instructions)) {
-            throw new Error(
-                `${errors.invalid_instruction} (${instructions})`
-            );
-        }
-        return Object.values(instructions)
-        .every(function everyInstruction(instruction) {
-            return isInstruction(
-                instruction
-            );
-        });
     }
 }

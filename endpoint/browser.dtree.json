@@ -8,6 +8,7 @@
         , "crypto": null
         , "buffer": null
     }]
+    , "performance": ["+performance"]
     , "browser":[{
         "url": ["+URL"]
         , "performance": ["+performance"]

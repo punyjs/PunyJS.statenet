@@ -1,0 +1,14 @@
+{
+    "conifg": {
+        "strict": true
+    }
+    , "iocNamePrefix": "ioc-controller"
+    , "base": [
+        "{PunyJS.statenet.endpoint}/dtree.json"
+    ]
+    , "entries": [
+        "{PunyJS.statenet.endpoint}/node.manifest.json"
+        , "{PunyJS.statenet.endpoint}/browser.manifest.json"
+        , "{PunyJS.ioc.manifests}/base.manifest.json"
+    ]
+}

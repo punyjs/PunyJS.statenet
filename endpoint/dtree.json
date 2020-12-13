@@ -27,7 +27,11 @@
         , "getType": [":PunyJS.core.utils.GetType"]
         , "array": [":PunyJS.core.array._Array", []]
         , "arrayOfType": [".utils.array", ".ofType"]
+        , "json": [":PunyJS.core.json._Json", []]
+        , "decycleStringify": [".json", ".decycle"]
+        , "retrocycleParse": [".json", ".retrocycle"]
     }]
+    , "weakMap": ["+WeakMap"]
     , "is": [{
         "error": [":PunyJS.core.is.Error"]
         , "nill": [":PunyJS.core.is.Nill"]

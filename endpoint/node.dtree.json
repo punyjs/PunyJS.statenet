@@ -7,6 +7,7 @@
         , "crypto": ["+require('crypto')"]
         , "buffer": ["+Buffer"]
     }]
+    , "perfomance": ["+require('perfomance')"]
     , "browser":[{
         "performance": null
         , "crypto": null
