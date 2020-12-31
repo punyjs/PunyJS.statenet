@@ -82,13 +82,15 @@ function _StateManager(
     , configuration
     ;
 
+    return StateManager;
+
     /**
     * @worker
     *   @async
     *   @property {object} config An object with the state manager configuration
     *   @property {object} [rootState] An optional object used to initialize the state manager.
     */
-    return function StateManager(
+    function StateManager(
         config
         , rootTarget
     ) {
@@ -344,21 +346,25 @@ function _StateManager(
     */
     function createTrapHandlers(meta) {
         return {
-            "get": getTrap.bind(null, meta)
-            , "set": setTrap.bind(null, meta)
-            , "deleteProperty": deleteTrap.bind(null, meta)
-            , "apply": applyTrap.bind(null, meta)
-            , "has": hasTrap.bind(null, meta)
-            , "ownKeys": ownKeysTrap.bind(null, meta)
+            "get": stateManagerGetTrap.bind(null, meta)
+            , "set": stateManagerSetTrap.bind(null, meta)
+            , "deleteProperty": stateManagerDeleteTrap.bind(null, meta)
+            , "apply": stateManagerApplyTrap.bind(null, meta)
+            , "has": stateManagerHasTrap.bind(null, meta)
+            , "ownKeys": stateManagerOwnKeysTrap.bind(null, meta)
         };
     }
     /**
     * @function
     */
-    function getTrap(meta, target, propName) {
+    function stateManagerGetTrap(meta, target, propName) {
         //the state doesn't use symbols, passthrough
         if (typeof propName === "symbol") {
             return target[propName];
+        }
+        //a special property, isStateful
+        if (propName === "isStateful") {
+            return true;
         }
         //verify access
         hasAccess(
@@ -423,7 +429,7 @@ function _StateManager(
     /**
     * @function
     */
-    function setTrap(meta, target, propName, value) {
+    function stateManagerSetTrap(meta, target, propName, value) {
         //the state doesn't use symbols, passthrough
         if (typeof propName === "symbol") {
             target[propName] = value;
@@ -489,7 +495,7 @@ function _StateManager(
     /**
     * @function
     */
-    function deleteTrap(meta, target, propName) {
+    function stateManagerDeleteTrap(meta, target, propName) {
         //the state doesn't use symbols, passthrough
         if (typeof propName === "symbol") {
             return delete target[propName];
@@ -546,7 +552,7 @@ function _StateManager(
     /**
     * @function
     */
-    function applyTrap(meta, target, thisArg, argList) {
+    function stateManagerApplyTrap(meta, target, thisArg, argList) {
         //verify access
         hasAccess(
             meta
@@ -581,7 +587,7 @@ function _StateManager(
     /**
     * @function
     */
-    function hasTrap(meta, target, propName) {
+    function stateManagerHasTrap(meta, target, propName) {
         if (typeof propName !== "symbol") {
             if (listenerManager.hasOwnProperty(propName)) {
                 return true;
@@ -592,12 +598,12 @@ function _StateManager(
     /**
     * @function
     */
-    function ownKeysTrap(meta, target) {
+    function stateManagerOwnKeysTrap(meta, target) {
         var keys = Object.getOwnPropertyNames(target)
         , symbolKeys = Object.getOwnPropertySymbols(target)
         , listenerKeys = Object.keys(listenerManager)
         ;
-        //filterr out internal instructions
+        //filter out internal instructions
         keys = keys.filter(
             function filterKeys(key) {
                 if (constants.internalOnly.indexOf(key) === -1) {
@@ -607,10 +613,14 @@ function _StateManager(
             }
         );
         //combine the keys
-        return keys
-            .concat(symbolKeys)
-            .concat(listenerKeys)
-        ;
+        keys = keys.concat(symbolKeys);
+        for(let i = 0, l = listenerKeys.length; i < l; i++) {
+            if (keys.indexOf(listenerKeys[i]) === -1) {
+                keys.push(listenerKeys[i]);
+            }
+        }
+
+        return keys;
     }
 
     /**
@@ -679,12 +689,7 @@ function _StateManager(
                 };
             }
             else if (propName === "$removeListener") {
-                return function wrappedRemoveListener(uuids) {
-                    return listenerManager[propName].apply(
-                        null
-                        , [meta.__namespace, uuids]
-                    );
-                };
+                return listenerManager[propName];
             }
         }
         throw new Error(

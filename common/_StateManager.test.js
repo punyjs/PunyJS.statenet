@@ -469,8 +469,86 @@ function stateManagerTest5(
             test("$removeListener should be called with")
             .value(listenerManager, "$removeListener")
             .hasBeenCalled(1)
-            .hasBeenCalledWithArg(0, 0, '$.main')
-            .hasBeenCalledWithArg(0, 1, 'uuid')
+            .hasBeenCalledWithArg(0, 0, 'uuid')
+            ;
+        }
+    );
+}
+/**
+* @test
+*   @title PunyJS.statenet.common._StateManager: regression, duplicate keys
+*/
+function stateManagerTest6(
+    controller
+    , mock_callback
+) {
+    var stateManager, config, initialState, state, listenerManager, keys;
+
+    arrange(
+        async function arrangeFn() {
+            stateManager = await controller(
+                [
+                    ":PunyJS.statenet.common._StateManager"
+                    , []
+                ]
+            );
+            initialState = {
+                "toolbar": {
+                    "title": "navigation toolbar"
+                    , "items": {
+                        "btnBack": {
+                            "enabled": true
+                            , "_icon": "back_icon"
+                            , "_focused": true
+                        }
+                        , "btnForward": {
+                            "enabled": false
+                            , "_icon": "forward_icon"
+                            , "_focused": false
+                        }
+                    }
+                }
+                , "main": {
+                    "left": {
+                        "rows": [
+                            [1,"row1"]
+                            , [2,"row2"]
+                        ]
+                        , "addRow": mock_callback()
+                    }
+                    , "right": {
+                        "_url":"/profile/pic"
+                    }
+                }
+                , "$addListener": "duplicate"
+            };
+            config = {};
+        }
+    );
+
+    act(
+        function actFn() {
+            state = stateManager(
+                config
+                , initialState
+            );
+            //this will throw an error if we don't deal with the duplicate $addListener key
+            keys = Object.keys(state);
+        }
+    );
+
+    assert(
+        function assertFn(test) {
+            test("keys should be")
+            .value(keys)
+            .stringify()
+            .equals('["toolbar","main","$addListener"]')
+            ;
+
+            test("$addListener should not equal 'dupplicate'")
+            .value(state, "$addListener")
+            .not
+            .equals(initialState.$addListener)
             ;
         }
     );

@@ -9,8 +9,7 @@
     }]
     , "perfomance": ["+require('perfomance')"]
     , "browser":[{
-        "performance": null
-        , "crypto": null
+        "crypto": null
     }]
     , "state": [{
         "endpoint": [{
