@@ -395,7 +395,7 @@ function _ListenerManager (
             store[uuid] = {
                 "func": handlers[i]
                 , "actions": actions
-            };console.log(uuid)
+            };
             uuidStoreMap[uuid] = namespace;
             uuids.push(uuid);
         }
