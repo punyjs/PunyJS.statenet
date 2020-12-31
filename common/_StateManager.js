@@ -36,8 +36,8 @@
 function _StateManager(
     promise
     , performance
-    , state_common_listenerManager
-    , state_common_listener
+    , statenet_common_listenerManager
+    , statenet_common_listener
     , utils_uuid
     , utils_copy
     , utils_update
@@ -65,11 +65,11 @@ function _StateManager(
     /**
     * @alias
     */
-    , listenerManager = state_common_listenerManager
+    , listenerManager = statenet_common_listenerManager
     /**
     * @alias
     */
-    , listener = state_common_listener
+    , listener = statenet_common_listener
     /**
     * A weak map to store meta data about each target object
     * @property

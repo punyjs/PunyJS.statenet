@@ -3,7 +3,7 @@
 * @factory
 */
 function _Listener (
-    state_common_listenerManager
+    statenet_common_listenerManager
     , is_uuid
     , is_array
     , is_string
@@ -11,7 +11,7 @@ function _Listener (
     /**
     * @alias
     */
-    var listenerManager = state_common_listenerManager
+    var listenerManager = statenet_common_listenerManager
     ;
 
     /**

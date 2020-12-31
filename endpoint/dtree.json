@@ -50,7 +50,7 @@
         "crypto": [":PunyJS.core.security._Crypto", []]
         , "fillRandomBytesSync": [".security.crypto",".fillRandomBytesSync"]
     }]
-    , "state": [{
+    , "statenet": [{
         "common": [{
             "listenerManager": [":PunyJS.statenet.common._ListenerManager",[]]
             , "listener": [":PunyJS.statenet.common._Listener",[]]
