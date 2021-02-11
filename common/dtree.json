@@ -55,6 +55,7 @@
             "listenerManager": [":PunyJS.statenet.common._ListenerManager",[]]
             , "listener": [":PunyJS.statenet.common._Listener",[]]
             , "stateManager": [":PunyJS.statenet.common._StateManager",[]]
+            , "isStateful": [".statenet.common.stateManager", ".isStateful"]
         }]
     }]
 }

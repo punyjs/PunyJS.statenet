@@ -82,6 +82,9 @@ function _StateManager(
     , configuration
     ;
 
+    //add a static lookup
+    StateManager.isStateful = isStateful;
+
     return StateManager;
 
     /**
@@ -363,7 +366,7 @@ function _StateManager(
             return target[propName];
         }
         //a special property, isStateful
-        if (propName === "isStateful") {
+        if (propName === "$$isStateful$$") {
             return true;
         }
         //verify access
@@ -393,12 +396,7 @@ function _StateManager(
             return target[propName];
         }
 
-        var hasProp = target.hasOwnProperty(propName)
-        , namespace = !!meta.__namespace
-            ? `${meta.__namespace}.${propName}`
-            : propName
-        , returnValue = target[propName]
-        ;
+        var returnValue = target[propName];
         //intake and create a proxy for new objects
         if (is_objectValue(returnValue) || is_func(returnValue)) {
             returnValue = createProxy(
@@ -407,22 +405,6 @@ function _StateManager(
                 , meta
             );
         }
-        //fire any listeners
-        listenerManager.$fireListener(
-            namespace
-            , "get"
-            , {
-                "namespace": namespace
-                , "trap": "get"
-                , "miss": !hasProp
-                , "value": returnValue
-            }
-        );
-        ///LOGGING
-        reporter.state(
-            `${info.trap_handler_fired} get ${propName}`
-        );
-        ///END LOGGING
 
         return returnValue;
     }
@@ -711,6 +693,15 @@ function _StateManager(
             && constants.instructions.indexOf(propName) !== -1
         ) {
             return true;
+        }
+        return false;
+    }
+    /**
+    * @function
+    */
+    function isStateful(value) {
+        if (is_objectValue(value) || is_func(value)) {
+            return value.$$isStateful$$ === true;
         }
         return false;
     }

@@ -9,15 +9,14 @@ async function setupStatenetController(
     , $import
     , $global
     , $reporter
+    , $mocks
 ) {
     try {
-        var mocks = {
-            "fs": {}
-            , "path": {}
-        }
-        , controller = await $import(
+        $mocks.fs = {};
+        $mocks.path = {};
+        $mocks.process = {};
+        var controller = await $import(
             "controller"
-            , mocks
         )
         , container = await $import(
             "app"
