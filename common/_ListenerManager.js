@@ -21,6 +21,7 @@ function _ListenerManager (
     , utils_arrayOfType
     , reporter
     , errors
+    , infos
 ) {
     /**
     * An object that holds the listener functions
@@ -158,6 +159,11 @@ function _ListenerManager (
                 , actions
             );
         }
+        ///LOGGING
+        reporter.state(
+            `${infos.statenet.state_listener_added} (${namespace}, ${uuids})`
+        );
+        ///END LOGGING
 
         //return the resulting uuids
         return uuids;
@@ -252,6 +258,11 @@ function _ListenerManager (
                 }
                 handlers[uuid] = handler;
             }
+            ///LOGGING
+            reporter.state(
+                `${infos.statenet.state_listener_removed} (${namespace}, ${uuid})`
+            );
+            ///END LOGGING
         });
 
         return handlers;
@@ -265,6 +276,11 @@ function _ListenerManager (
             namespace
         );
         ///END INPUT VALIDATION
+        ///LOGGING
+        reporter.state(
+            `${infos.statenet.state_event_emitted} (${namespace})`
+        );
+        ///END LOGGING
         //get all of the handlers for this namespace
         getHandlers(
             namespace

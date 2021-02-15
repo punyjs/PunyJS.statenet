@@ -42,8 +42,8 @@
     , "constants": [
         ":PunyJS.statenet.common.Constants"
     ]
-    , "info": [
-        ":PunyJS.statenet.common.Info"
+    , "infos": [
+        ":PunyJS.statenet.common.Infos"
     ]
     , "weakMap": ["+WeakMap"]
     , "security": [{

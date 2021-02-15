@@ -1,0 +1,11 @@
+{
+    "statenet": {
+        "set_trap_called": "[Set Trap Called] The set trap has been called for"
+        , "delete_trap_called": "[Delete Drap Fired] The delete trap has been called for"
+        , "apply_trap_called": "[Apply Trap Fired] The apply trap has been called for"
+        , "instruction_handler_fired": "[Instruction Handler Fired] A trap handler for an instruction property has been fired:"
+        , "state_listener_added": "[State Listener Added] A state listener was added for"
+        , "state_listener_removed": "[State Listener Removed] A state listener was removed for"
+        , "state_event_emitted": "[State Listener Emitted] A state event has been emitted for"
+    }
+}

@@ -52,7 +52,7 @@ function _StateManager(
     , reporter
     , defaults
     , constants
-    , info
+    , infos
     , errors
 ) {
     /**
@@ -417,6 +417,11 @@ function _StateManager(
             target[propName] = value;
             return true;
         }
+        ///LOGGING
+        reporter.state(
+            `${infos.statenet.set_trap_called} ${propName}`
+        );
+        ///END LOGGING
         //verify access
         hasAccess(
             meta
@@ -466,11 +471,6 @@ function _StateManager(
                 , "success": !!result
             }
         );
-        ///LOGGING
-        reporter.state(
-            `${info.trap_handler_fired} set ${propName}`
-        );
-        ///END LOGGING
 
         return true;
     }
@@ -482,6 +482,11 @@ function _StateManager(
         if (typeof propName === "symbol") {
             return delete target[propName];
         }
+        ///LOGGING
+        reporter.state(
+            `${infos.statenet.delete_trap_called} ${propName}`
+        );
+        ///END LOGGING
         //verify access
         hasAccess(
             meta
@@ -523,11 +528,6 @@ function _StateManager(
                 , "success": result
             }
         );
-        ///LOGGING
-        reporter.state(
-            `${info.trap_handler_fired} delete ${propName}`
-        );
-        ///END LOGGING
 
         return result;
     }
@@ -535,6 +535,11 @@ function _StateManager(
     * @function
     */
     function stateManagerApplyTrap(meta, target, thisArg, argList) {
+        ///LOGGING
+        reporter.state(
+            `${infos.statenet.apply_trap_called} ${meta.__namespace}`
+        );
+        ///END LOGGING
         //verify access
         hasAccess(
             meta
@@ -558,11 +563,6 @@ function _StateManager(
                 , "arguments": argList
             }
         );
-        ///LOGGING
-        reporter.state(
-            `${info.trap_handler_fired} apply ${meta.__namespace}`
-        );
-        ///END LOGGING
 
         return result;
     }
@@ -624,7 +624,7 @@ function _StateManager(
     function instructionHandler(meta, action, propName, value) {
         ///LOGGING
         reporter.state(
-            `${info.instruction_handler_fired} ${action} ${propName}`
+            `${infos.instruction_handler_fired} ${action} ${propName}`
         );
         ///END LOGGING
         //if this is internal
