@@ -85,6 +85,8 @@ function _StateManager(
     //add a static lookup
     StateManager.isStateful = isStateful;
 
+    StateManager.findStateful = findStateful;
+
     return StateManager;
 
     /**
@@ -704,5 +706,19 @@ function _StateManager(
             return value.$$isStateful$$ === true;
         }
         return false;
+    }
+    /**
+    * @function
+    */
+    function findStateful(obj, key) {
+        //loop through the prototype chain
+        while(!isStateful(obj) && !obj.hasOwnProperty(key)) {
+            obj = Object.getPrototypeOf(obj);
+            if (!obj) {
+                break;
+            }
+        }
+
+        return obj || null;
     }
 }
