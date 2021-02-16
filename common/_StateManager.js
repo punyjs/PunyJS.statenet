@@ -469,6 +469,11 @@ function _StateManager(
                 , "trap": "set"
                 , "miss": !hasProp
                 , "typeChange": typeChange
+                , "value": stateManagerGetTrap(
+                    meta
+                    , target
+                    , propName
+                )
                 , "oldValue": oldValue
                 , "success": !!result
             }
