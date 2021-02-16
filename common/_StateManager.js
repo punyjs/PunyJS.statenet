@@ -318,7 +318,7 @@ function _StateManager(
         .forEach(
             function checkEachKey(key) {
                 if (isInstruction(key)) {
-                    meta = target[key];
+                    meta[key] = target[key];
                     delete target[key];
                 }
             }
