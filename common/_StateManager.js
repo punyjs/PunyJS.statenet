@@ -716,6 +716,9 @@ function _StateManager(
     * @function
     */
     function findStateful(obj, key) {
+        if (!is_objectValue(obj)) {
+            return null;
+        }
         //loop through the prototype chain
         while(!isStateful(obj) && !obj.hasOwnProperty(key)) {
             obj = Object.getPrototypeOf(obj);
