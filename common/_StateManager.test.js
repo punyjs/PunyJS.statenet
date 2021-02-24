@@ -80,16 +80,6 @@ function stateManagerTest1(
             .value(state, "main")
             .hasOwnProperty("left")
             ;
-
-            test("The state should have addListener property")
-            .value(state)
-            .hasProperty("$addListener")
-            ;
-
-            test("The state.toolbar.items should have addListener property")
-            .value(state, "toolbar.items")
-            .hasProperty("$addListener")
-            ;
         }
     );
 }
@@ -169,27 +159,30 @@ function stateManagerTest2(
         function assertFn(test) {
             test("The fireListener callback should be called with")
             .value(listenerManager, "$fireListener")
-            .hasBeenCalled(13)
-            .hasBeenCalledWithArg(0, 0, "$.toolbar")
-            .hasBeenCalledWithArg(0, 1, "get")
+            .hasBeenCalled(4)
+            .hasBeenCalledWithArg(0, 0, "$.toolbar.title")
+            .hasBeenCalledWithArg(0, 1, "set")
+            .getCallbackArg(0, 2)
+            .stringify()
+            .equals('{"namespace":"$.toolbar.title","trap":"set","miss":false,"typeChange":false,"value":"new title","oldValue":"navigation toolbar","success":true}')
             ;
 
-            test("The fireListener 8th callback should be called with")
+            test("The fireListener 2nd callback should be called with")
             .value(listenerManager, "$fireListener")
-            .hasBeenCalledWithArg(6, 0, "$.main.left.rows.2")
-            .hasBeenCalledWithArg(6, 1, "set")
-            .getCallbackArg(6, 2)
+            .hasBeenCalledWithArg(1, 0, "$.main.left.rows.2")
+            .hasBeenCalledWithArg(1, 1, "set")
+            .getCallbackArg(1, 2)
             .stringify()
-            .equals('{"namespace":"$.main.left.rows.2","trap":"set","miss":true,"typeChange":false,"success":true}')
+            .equals('{"namespace":"$.main.left.rows.2","trap":"set","miss":true,"typeChange":false,"value":[3,"row3"],"success":true}')
             ;
 
-            test("The fireListener 14th callback should be called with")
+            test("The fireListener 4th callback should be called with")
             .value(listenerManager, "$fireListener")
-            .hasBeenCalledWithArg(12, 0, "$.main.left.rows.1.1")
-            .hasBeenCalledWithArg(12, 1, "set")
-            .getCallbackArg(12, 2)
+            .hasBeenCalledWithArg(3, 0, "$.main.left.rows.1.1")
+            .hasBeenCalledWithArg(3, 1, "set")
+            .getCallbackArg(3, 2)
             .stringify()
-            .equals('{"namespace":"$.main.left.rows.1.1","trap":"set","miss":false,"typeChange":false,"oldValue":"row2","success":true}')
+            .equals('{"namespace":"$.main.left.rows.1.1","trap":"set","miss":false,"typeChange":false,"value":"update3","oldValue":"row2","success":true}')
             ;
         }
     );
@@ -269,16 +262,19 @@ function stateManagerTest3(
         function assertFn(test) {
             test("The fireListener callback should be called with")
             .value(listenerManager, "$fireListener")
-            .hasBeenCalled(6)
-            .hasBeenCalledWithArg(1, 0, "$.toolbar.title")
-            .hasBeenCalledWithArg(1, 1, "delete")
+            .hasBeenCalled(2)
+            .hasBeenCalledWithArg(0, 0, "$.toolbar.title")
+            .hasBeenCalledWithArg(0, 1, "delete")
+            .getCallbackArg(0, 2)
+            .stringify()
+            .equals('{"namespace":"$.toolbar.title","trap":"delete","miss":false,"success":true}')
             ;
 
-            test("The fireListener 8th callback should be called with")
+            test("The fireListener 2nd callback should be called with")
             .value(listenerManager, "$fireListener")
-            .hasBeenCalledWithArg(5, 0, "$.main.left.rows.0")
-            .hasBeenCalledWithArg(5, 1, "delete")
-            .getCallbackArg(5, 2)
+            .hasBeenCalledWithArg(1, 0, "$.main.left.rows.0")
+            .hasBeenCalledWithArg(1, 1, "delete")
+            .getCallbackArg(1, 2)
             .stringify()
             .equals('{"namespace":"$.main.left.rows.0","trap":"delete","miss":false,"success":true}')
             ;
@@ -287,7 +283,7 @@ function stateManagerTest3(
 }
 /**
 * @test
-*   @title PunyJS.statenet.common._StateManager: apply, get
+*   @title PunyJS.statenet.common._StateManager: apply
 */
 function stateManagerTest4(
     controller
@@ -360,10 +356,10 @@ function stateManagerTest4(
         function assertFn(test) {
             test("The fireListener callback should be called with")
             .value(listenerManager, "$fireListener")
-            .hasBeenCalled(4)
-            .hasBeenCalledWithArg(3, 0, "$.main.left.addRow")
-            .hasBeenCalledWithArg(3, 1, "apply")
-            .getCallbackArg(3, 2)
+            .hasBeenCalled(1)
+            .hasBeenCalledWithArg(0, 0, "$.main.left.addRow")
+            .hasBeenCalledWithArg(0, 1, "apply")
+            .getCallbackArg(0, 2)
             .stringify()
             .equals('{"namespace":"$.main.left.addRow","trap":"apply","scope":{"rows":[[1,"row1"],[2,"row2"]]},"arguments":[[3,"row3"]]}')
             ;
@@ -545,7 +541,7 @@ function stateManagerTest6(
             .equals('["toolbar","main","$addListener"]')
             ;
 
-            test("$addListener should not equal 'dupplicate'")
+            test("$addListener should not equal 'duplicate'")
             .value(state, "$addListener")
             .not
             .equals(initialState.$addListener)
