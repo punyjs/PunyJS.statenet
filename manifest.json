@@ -5,6 +5,7 @@
     , "iocNamePrefix": "ioc-controller"
     , "base": [
         "{PunyJS.statenet.endpoint}/dtree.json"
+        , "{PunyJS.statenet.common}/dtree.json"
     ]
     , "entries": [
         "{PunyJS.statenet.endpoint}/node.manifest.json"

@@ -44,6 +44,7 @@
     ]
     , "infos": [
         ":PunyJS.statenet.common.Infos"
+        , {"conflictResolution":"error"}
     ]
     , "weakMap": ["+WeakMap"]
     , "security": [{

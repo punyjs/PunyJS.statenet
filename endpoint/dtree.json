@@ -4,20 +4,6 @@
         "gregorianReform": ["+Date.UTC('1582', '9', '15', '0', '0', '0', '0')"]
         , "timestamper": [":PunyJS.core.timing._Timestamper",[]]
     }]
-    , "errors": [
-        ":PunyJS.statenet.common.Errors"
-        , ":PunyJS.core.data.Errors"
-    ]
-    , "defaults": [
-        ":PunyJS.statenet.common.Defaults"
-        , ":PunyJS.core.data.Defaults"
-    ]
-    , "constants": [
-        ":PunyJS.statenet.common.Constants"
-    ]
-    , "info": [
-        ":PunyJS.statenet.common.Info"
-    ]
     , "utils": [{
         "copy": [":PunyJS.core.object.Copy"]
         , "uuid": [":PunyJS.core.data._Uuid",[]]
@@ -51,12 +37,7 @@
         , "fillRandomBytesSync": [".security.crypto",".fillRandomBytesSync"]
     }]
     , "statenet": [{
-        "common": [{
-            "listenerManager": [":PunyJS.statenet.common._ListenerManager",[]]
-            , "listener": [":PunyJS.statenet.common._Listener",[]]
-            , "stateManager": [":PunyJS.statenet.common._StateManager",[]]
-        }]
-        , "endpoint": [{
+        "endpoint": [{
             "endpointInit": [":PunyJS.statenet.endpoint._EndpointInit", []]
             , "endpoint": [":PunyJS.statenet.endpoint._Endpoint",[]]
             , "gatekeeper": [":PunyJS.statenet.endpoint._Gatekeeper",[]]
