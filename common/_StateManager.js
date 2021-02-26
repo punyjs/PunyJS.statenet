@@ -306,6 +306,10 @@ function _StateManager(
             , meta
         );
 
+        meta.arrayChangeMap = new weakMap();
+        meta.proxyMap = new weakMap();
+        meta.arrayOpMap = new weakMap();
+
         return meta;
     }
     /**
@@ -355,8 +359,6 @@ function _StateManager(
             , "set": stateManagerSetTrap.bind(null, meta)
             , "deleteProperty": stateManagerDeleteTrap.bind(null, meta)
             , "apply": stateManagerApplyTrap.bind(null, meta)
-            , "has": stateManagerHasTrap.bind(null, meta)
-            , "ownKeys": stateManagerOwnKeysTrap.bind(null, meta)
         };
     }
     /**
@@ -453,20 +455,33 @@ function _StateManager(
             ? `${meta.__namespace}.${propName}`
             : propName
         , oldValue = target[propName]
-        , result = target[propName] = value
         , typeChange = false
         ;
         //see if we changed the type
         if (!!hasProp && utils_getType(oldValue) !== utils_getType(value)) {
             typeChange = true;
         }
+        //if this is an array handle thos seperately
+        if (is_array(target)) {
+            return handleSetArray(
+                meta
+                , target
+                , propName
+                , value
+                , oldValue
+                , hasProp
+                , typeChange
+            );
+        }
+        //update the value
+        target[propName] = value;
         //fire any listeners
         listenerManager.$fireListener(
             namespace
             , "set"
             , {
                 "namespace": namespace
-                , "trap": "set"
+                , "action": "set"
                 , "miss": !hasProp
                 , "typeChange": typeChange
                 , "value": stateManagerGetTrap(
@@ -475,7 +490,6 @@ function _StateManager(
                     , propName
                 )
                 , "oldValue": oldValue
-                , "success": !!result
             }
         );
 
@@ -517,6 +531,14 @@ function _StateManager(
                 , propName
             );
         }
+        //if the target is an array then take a different path
+        if (is_array(target)) {
+            return handleDeleteArray(
+                meta
+                , target
+                , propName
+            );
+        }
 
         var hasProp = target.hasOwnProperty(propName)
         , namespace = !!meta.__namespace
@@ -524,13 +546,14 @@ function _StateManager(
             : propName
         , result = delete target[propName]
         ;
+
         //fire any listeners
         listenerManager.$fireListener(
             namespace
             , "delete"
             , {
                 "namespace": namespace
-                , "trap": "delete"
+                , "action": "delete"
                 , "miss": !hasProp
                 , "success": result
             }
@@ -541,7 +564,12 @@ function _StateManager(
     /**
     * @function
     */
-    function stateManagerApplyTrap(meta, target, thisArg, argList) {
+    function stateManagerApplyTrap(
+        meta
+        , target
+        , thisArg
+        , argList
+    ) {
         ///LOGGING
         reporter.state(
             `${infos.statenet.apply_trap_called} ${meta.__namespace}`
@@ -565,7 +593,7 @@ function _StateManager(
             , "apply"
             , {
                 "namespace": meta.__namespace
-                , "trap": "apply"
+                , "action": "apply"
                 , "scope": thisArg
                 , "arguments": argList
             }
@@ -573,43 +601,270 @@ function _StateManager(
 
         return result;
     }
+
     /**
     * @function
     */
-    function stateManagerHasTrap(meta, target, propName) {
-        if (typeof propName !== "symbol") {
-            if (listenerManager.hasOwnProperty(propName)) {
-                return true;
+    function handleSetArray(
+        meta
+        , target
+        , propName
+        , value
+        , oldValue
+        , hasProp
+        , typeChange
+    ) {
+        //get the change list for the target array
+        var changeList = meta.arrayChangeMap.get(
+            target
+        )
+        //get the operatation set for the target array
+        , op = meta.arrayOpMap.get(
+            target
+        )
+        ;
+        //if this is not a length change then it is part of a change cycle
+        if (propName !== 'length') {
+            //set the value
+            target[propName] = value;
+            //if there isn't a change list, this is the start of a cycle
+            if (!changeList) {
+                meta.arrayChangeMap.set(
+                    target
+                    , (changeList = [])
+                );
+            }
+            //add a change record to the list
+            changeList.push(
+                {
+                    "action": "set"
+                    , "propName": propName
+                    , "miss": !hasProp
+                    , "typeChange": typeChange
+                    , "value": value
+                    , "oldValue": oldValue
+                }
+            );
+            //if there isn't an operation then process the update immediately
+            if (!op) {
+                meta.arrayChangeMap.delete(
+                    target
+                );
+                processArrayChangeCycle(
+                    meta
+                    , target
+                    , changeList
+                );
             }
         }
-        return propName in target;
+        //if there isn't a change list then this is just an array length update
+        else if (!changeList) {
+            handleLengthChange(
+                meta
+                , target
+                , propName
+                , value
+                , oldValue
+            );
+            //set the value
+            target[propName] = value;
+        }
+        //otherwise this is the end of a change cycle
+        else {
+            //remove the array change map for this target
+            meta.arrayChangeMap.delete(
+                target
+            );
+            meta.arrayOpMap.delete(
+                target
+            );
+            processArrayChangeCycle(
+                meta
+                , target
+                , changeList
+            );
+            //set the value
+            target[propName] = value;
+        }
+
+        return true;
     }
     /**
     * @function
     */
-    function stateManagerOwnKeysTrap(meta, target) {
-        var keys = Object.getOwnPropertyNames(target)
-        , symbolKeys = Object.getOwnPropertySymbols(target)
-        , listenerKeys = Object.keys(listenerManager)
-        ;
-        //filter out internal instructions
-        keys = keys.filter(
-            function filterKeys(key) {
-                if (constants.internalOnly.indexOf(key) === -1) {
-                    return true;
-                }
-                return false;
-            }
-        );
-        //combine the keys
-        keys = keys.concat(symbolKeys);
-        for(let i = 0, l = listenerKeys.length; i < l; i++) {
-            if (keys.indexOf(listenerKeys[i]) === -1) {
-                keys.push(listenerKeys[i]);
+    function handleLengthChange(
+        meta
+        , target
+        , propName
+        , newLength
+        , oldLength
+    ) {
+        var namespace;
+        //if this is reducing, fire delete events
+        if (oldLength > newLength) {
+            while(oldLength > newLength) {
+                oldLength--;
+                namespace =  !!meta.__namespace
+                    ? `${meta.__namespace}.${propName}`
+                    : propName
+                ;
+                //fire a listener for each delete
+                listenerManager.$fireListener(
+                    namespace
+                    , "delete"
+                    , {
+                        "namespace": namespace
+                        , "action": "delete"
+                        , "arrayAction": "delete"
+                        , "miss": !!target[propName]
+                        , "typeChange": false
+                        , "value": stateManagerGetTrap(
+                            meta
+                            , target
+                            , propName
+                        )
+                        , "oldValue": oldValue
+                    }
+                );
             }
         }
+    }
+    /**
+    * @function
+    */
+    function handleDeleteArray(
+        meta
+        , target
+        , propName
+    ) {
+        //get the change list for the target
+        var changeList = meta.arrayChangeMap.get(
+            target
+        )
+        , oldValue
+        , success
+        ;
+        //if there isn't a change list then this is a straight delete of the property
+        if (!changeList) {
+            oldValue = target[propName];
+            success = delete target[propName];
+            processArrayChangeCycle(
+                meta
+                , target
+                , [
+                    {
+                        "action": "delete"
+                        , "propName": propName
+                        , "oldValue": oldValue
+                        , "value": null
+                        , "miss": false
+                        , "success": success
+                    }
+                ]
+            );
+        }
+        else {
+            oldValue = target[propName];
+            success = delete target[propName];
+            //add a change record to the list and wait for length change
+            changeList.push(
+                {
+                    "action": "delete"
+                    , "propName": propName
+                    , "oldValue": oldValue
+                    , "miss": false
+                    , "success": success
+                }
+            );
+        }
 
-        return keys;
+        return true;
+    }
+    /**
+    * @function
+    */
+    function processArrayChangeCycle(
+        meta
+        , target
+        , changeList
+    ) {
+        var firstEntry = changeList[0]
+        , lastEntry = changeList[changeList.length - 1]
+        , secondLastEntry = changeList[changeList.length - 2]
+        , oldValue, value
+        , action, arrayAction
+        , miss, typeChange, success
+        , propName, eventDetail
+        ;
+
+        //if the last member is a delete, then this is a delete operation
+        if (lastEntry.action === "delete") {
+            //the first change has the deleted value and key
+            propName = firstEntry.propName;
+            oldValue = firstEntry.oldValue;
+            typeChange = firstEntry.typeChange;
+            action = arrayAction = "delete";
+            success = firstEntry.success;
+            miss = false;
+        }
+        //if there is only one entry then this is an append or replace
+        else if (changeList.length === 1) {
+            propName = firstEntry.propName;
+            value = firstEntry.value;
+            typeChange = firstEntry.typeChange;
+            action = "set";
+            if (firstEntry.miss) {
+                arrayAction = "append";
+                miss = true;
+            }
+            else {
+                arrayAction = "replace";
+                miss = false;
+                oldValue = firstEntry.oldValue;
+            }
+        }
+        //otherwise this is an insert operation
+        else {
+            //the final change should be the insert
+            propName = lastEntry.propName;
+            value = lastEntry.value;
+            oldValue = secondLastEntry.value;
+            typeChange = secondLastEntry.typeChange;
+            action = "set";
+            arrayAction = "insert";
+            miss = false;
+        }
+
+        //create the namespace
+        namespace =  !!meta.__namespace
+            ? `${meta.__namespace}.${propName}`
+            : propName
+        ;
+
+        eventDetail = {
+            "namespace": namespace
+            , "action": action
+            , "arrayAction": arrayAction
+            , "miss": miss
+            , "typeChange": typeChange
+            , "value": stateManagerGetTrap(
+                meta
+                , target
+                , propName
+            )
+            , "oldValue": oldValue
+        };
+
+        if (action === "delete") {
+            eventDetail.success = success;
+        }
+
+        //fire any listeners
+        listenerManager.$fireListener(
+            namespace
+            , action
+            , eventDetail
+        );
     }
 
     /**
