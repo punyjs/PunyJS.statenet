@@ -974,6 +974,10 @@ function _StateManager(
         if (!is_objectValue(obj)) {
             return null;
         }
+        //if this has the property but isn't stateful skip prototype checks
+        if (obj.hasOwnProperty(key) && !isStateful(obj)) {
+            return null;
+        }
         //loop through the prototype chain
         while(!isStateful(obj) && !obj.hasOwnProperty(key)) {
             obj = Object.getPrototypeOf(obj);
