@@ -56,12 +56,12 @@ function _StateManager(
     , errors
 ) {
     /**
-    * The internal storage for state items and configurations
-    * @property
-    *   @private
+    * @constants
     */
-    var mem_store
-    , root
+    var cnsts = {
+        "isStatefulPropName": "$$isStateful$$"
+        , "isRefPropName": "$$isref$$"
+    }
     /**
     * @alias
     */
@@ -364,21 +364,22 @@ function _StateManager(
     /**
     * @function
     */
-    function stateManagerGetTrap(meta, target, propName) {
+    function stateManagerGetTrap(meta, target, propName, receiver) {
         //the state doesn't use symbols, passthrough
         if (typeof propName === "symbol") {
             return target[propName];
         }
-        //a special property, isStateful
-        if (propName === "$$isStateful$$") {
+        //a special property, isStateful to identify that the object is
+        if (propName === cnsts.isStatefulPropName) {
             return true;
         }
-        //verify access
-        hasAccess(
-            meta
-            , "get"
-            , propName
-        );
+        //a special property, isRef to identify if an object matches the internal target
+        if (propName === cnsts.isRefPropName) {
+            return isRef.bind(
+                null
+                , target
+            );
+        }
         //if this is an instruction then process it
         if (isInstruction(propName)) {
             return instructionHandler(
@@ -963,7 +964,7 @@ function _StateManager(
     */
     function isStateful(value) {
         if (is_objectValue(value) || is_func(value)) {
-            return value.$$isStateful$$ === true;
+            return value[cnsts.isStatefulPropName] === true;
         }
         return false;
     }
@@ -987,5 +988,27 @@ function _StateManager(
         }
 
         return obj || null;
+    }
+    /**
+    * @function
+    */
+    function isRef(target, value) {
+        return target === value;
+    }
+
+    /**
+    * @function
+    */
+    function parseNamespace(namespace) {
+        var parts = namespace
+            .split(DOT_PATT)
+        , name = parts.pop()
+        , parentNamespace = parts.join(".")
+        ;
+
+        return [
+            parentNamespace
+            , name
+        ];
     }
 }
