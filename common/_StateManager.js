@@ -760,7 +760,7 @@ function _StateManager(
                             , target
                             , propName
                         )
-                        , "oldValue": oldValue
+                        , "oldValue": oldLength
                     }
                 );
             }
@@ -839,7 +839,7 @@ function _StateManager(
             //the first change has the deleted value and key
             propName = firstEntry.propName;
             oldValue = firstEntry.oldValue;
-            typeChange = firstEntry.typeChange;
+            typeChange = false;
             action = arrayAction = "delete";
             success = firstEntry.success;
             miss = false;
