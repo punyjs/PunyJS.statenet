@@ -281,29 +281,25 @@ function _ListenerManager (
             `${infos.statenet.state_event_emitted} (${namespace})`
         );
         ///END LOGGING
+        var error;
         //get all of the handlers for this namespace
         getHandlers(
             namespace
         )
         //fire the handlers
         .forEach(function forEachHandler(handler) {
-            try {
-                var actions = handler.actions
-                , func = handler.func
-                ;
-                if (
-                    actions.indexOf(action) !== -1
-                    || actions.indexOf("all") !== -1
-                ) {
-                    func(
-                        value
-                        , namespace
-                        , action
-                    );
-                }
-            }
-            catch(ex) {
-                reporter.error(ex);
+            var actions = handler.actions
+            , func = handler.func
+            ;
+            if (
+                actions.indexOf(action) !== -1
+                || actions.indexOf("all") !== -1
+            ) {
+                func(
+                    value
+                    , namespace
+                    , action
+                );
             }
         });
     }
@@ -409,7 +405,8 @@ function _ListenerManager (
                 "version": 4
             });
             store[uuid] = {
-                "func": handlers[i]
+                "namespace": namespace
+                , "func": handlers[i]
                 , "actions": actions
             };
             uuidStoreMap[uuid] = namespace;
