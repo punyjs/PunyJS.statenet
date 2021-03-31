@@ -162,6 +162,12 @@ function listenerManagerTest3(
             );
 
             listenerManager.$addListener(
+                "state.$every._nextScreen"
+                , cb1
+                , 'get'
+            );
+
+            listenerManager.$addListener(
                 "state.toolbar.$every"
                 , cb3
                 , 'get'
@@ -177,6 +183,12 @@ function listenerManagerTest3(
                 "state.screens._currentScreen"
                 , "get"
                 , "value1"
+            );
+
+            listenerManager.$fireListener(
+                "state.screens._nextScreen"
+                , "get"
+                , "value2"
             );
 
             listenerManager.$fireListener(
@@ -197,8 +209,9 @@ function listenerManagerTest3(
         function arrangeFn(test) {
             test("The first callback should be called with")
             .value(cb1)
-            .hasBeenCalled(1)
+            .hasBeenCalled(2)
             .hasBeenCalledWithArg(0, 0, 'value1')
+            .hasBeenCalledWithArg(1, 0, 'value2')
             ;
 
             test("The second callback should be called with")
@@ -210,7 +223,9 @@ function listenerManagerTest3(
 
             test("The third callback should be called with")
             .value(cb3)
-            .hasBeenCalled(0)
+            .hasBeenCalled(2)
+            .hasBeenCalledWithArg(0, 0, 'value2')
+            .hasBeenCalledWithArg(1, 0, 'value3')
             ;
         }
     );
