@@ -127,7 +127,7 @@ function _ListenerManager (
         //see if the namespace has a wildcard
         if(!is_nill(parsedNs.wildcard)) {
             //ensure we have a wildcards object
-            if (!listenerEntry.hasOwnProperty("wildcard")) {
+            if (!listenerEntry.hasOwnProperty("wildcards")) {
                 listenerEntry.wildcards = {};
             }
             wildcards = listenerEntry.wildcards;
