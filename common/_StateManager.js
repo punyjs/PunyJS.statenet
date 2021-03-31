@@ -427,12 +427,28 @@ function _StateManager(
     /**
     * @function
     */
-    function stateManagerSetTrap(meta, target, propName, value) {
+    function stateManagerSetTrap(meta, target, propName, value, receiver) {
         //the state doesn't use symbols, passthrough
         if (typeof propName === "symbol") {
             target[propName] = value;
             return true;
         }
+        //if the property was not found on the receiver it will fall to the prototype. Check to see if the receiver's proto is this state
+        //if the prototype is this state then define the property on the receiver
+        if (Object.getPrototypeOf(receiver)[cnsts.isStatefulPropName]) {
+            //use define property otherwise setting the property directly will cause this trap to be called recursively
+            Object.defineProperty(
+                receiver
+                , propName
+                , {
+                    "enumerable": true
+                    , "writable": true
+                    , "value": value
+                }
+            );
+            return true;
+        }
+
         ///LOGGING
         reporter.state(
             `${infos.statenet.set_trap_called} ${propName}`
