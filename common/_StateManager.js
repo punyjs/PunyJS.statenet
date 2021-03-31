@@ -80,6 +80,11 @@ function _StateManager(
     * @property
     */
     , configuration
+    /**
+    * A regular expression pattern for replacing dots with escaped dots
+    * @property
+    */
+    , DOT_PATT = /(?:(?<![\\])|(?<=[\\]{2}))[.]/g
     ;
 
     //add a static lookup
@@ -400,7 +405,13 @@ function _StateManager(
         if (!target.hasOwnProperty(propName)) {
             return target[propName];
         }
-
+        //verify access
+        hasAccess(
+            meta
+            , "get"
+            , propName
+        );
+        //get the return value
         var returnValue = target[propName];
         //intake and create a proxy for new objects
         if (is_objectValue(returnValue) || is_func(returnValue)) {
@@ -450,7 +461,7 @@ function _StateManager(
                 , propName
             );
         }
-
+        //see if the target has this property
         var hasProp = target.hasOwnProperty(propName)
         , namespace = !!meta.__namespace
             ? `${meta.__namespace}.${propName}`
@@ -482,6 +493,8 @@ function _StateManager(
             , "set"
             , {
                 "namespace": namespace
+                , "name": propName
+                , "parentNamespace": meta.__namespace
                 , "action": "set"
                 , "miss": !hasProp
                 , "typeChange": typeChange
@@ -554,6 +567,8 @@ function _StateManager(
             , "delete"
             , {
                 "namespace": namespace
+                , "name": propName
+                , "parentNamespace": meta.__namespace
                 , "action": "delete"
                 , "miss": !hasProp
                 , "success": result
@@ -587,6 +602,9 @@ function _StateManager(
                 thisArg
                 , argList
             )
+        , [parentNamespace, propName] = parseNamespace(
+            namespace
+        )
         ;
         //fire any listeners
         listenerManager.$fireListener(
@@ -594,6 +612,8 @@ function _StateManager(
             , "apply"
             , {
                 "namespace": meta.__namespace
+                , "name": propName
+                , "parentNamespace": parentNamespace
                 , "action": "apply"
                 , "scope": thisArg
                 , "arguments": argList
@@ -844,6 +864,8 @@ function _StateManager(
 
         eventDetail = {
             "namespace": namespace
+            , "name": propName
+            , "parentNamespace": meta.__namespace
             , "action": action
             , "arrayAction": arrayAction
             , "miss": miss
