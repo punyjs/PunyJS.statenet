@@ -164,7 +164,7 @@ function stateManagerTest2(
             .hasBeenCalledWithArg(0, 1, "set")
             .getCallbackArg(0, 2)
             .stringify()
-            .equals('{"namespace":"$.toolbar.title","action":"set","miss":false,"typeChange":false,"value":"new title","oldValue":"navigation toolbar"}')
+            .equals('{"namespace":"$.toolbar.title","name":"title","parentNamespace":"$.toolbar","action":"set","miss":false,"typeChange":false,"value":"new title","oldValue":"navigation toolbar"}')
             ;
 
             test("The fireListener 2nd callback should be called with")
@@ -173,7 +173,7 @@ function stateManagerTest2(
             .hasBeenCalledWithArg(1, 1, "set")
             .getCallbackArg(1, 2)
             .stringify()
-            .equals('{"namespace":"$.main.left.rows.2","action":"set","arrayAction":"append","miss":true,"typeChange":false,"value":[3,"row3"]}')
+            .equals('{"namespace":"$.main.left.rows.2","name":"2","parentNamespace":"$.main.left.rows","action":"set","arrayAction":"append","miss":true,"typeChange":false,"value":[3,"row3"]}')
             ;
 
             test("The fireListener 3rd callback should be called with")
@@ -182,7 +182,7 @@ function stateManagerTest2(
             .hasBeenCalledWithArg(2, 1, "set")
             .getCallbackArg(2, 2)
             .stringify()
-            .equals('{"namespace":"$.main.left.rows.1.1","action":"set","arrayAction":"replace","miss":false,"typeChange":false,"value":"update3","oldValue":"row2"}')
+            .equals('{"namespace":"$.main.left.rows.1.1","name":"1","parentNamespace":"$.main.left.rows.1","action":"set","arrayAction":"replace","miss":false,"typeChange":false,"value":"update3","oldValue":"row2"}')
             ;
         }
     );
@@ -267,7 +267,7 @@ function stateManagerTest3(
             .hasBeenCalledWithArg(0, 1, "delete")
             .getCallbackArg(0, 2)
             .stringify()
-            .equals('{"namespace":"$.toolbar.title","action":"delete","miss":false,"success":true}')
+            .equals('{"namespace":"$.toolbar.title","name":"title","parentNamespace":"$.toolbar","action":"delete","miss":false,"success":true}')
             ;
 
             test("The fireListener 2nd callback should be called with")
@@ -276,7 +276,7 @@ function stateManagerTest3(
             .hasBeenCalledWithArg(1, 1, "delete")
             .getCallbackArg(1, 2)
             .stringify()
-            .equals('{"namespace":"$.main.left.rows.0","action":"delete","arrayAction":"delete","miss":false,"oldValue":[1,"row1"],"success":true}')
+            .equals('{"namespace":"$.main.left.rows.0","name":"0","parentNamespace":"$.main.left.rows","action":"delete","arrayAction":"delete","miss":false,"typeChange":false,"oldValue":[1,"row1"],"success":true}')
             ;
         }
     );
@@ -361,7 +361,7 @@ function stateManagerTest4(
             .hasBeenCalledWithArg(0, 1, "apply")
             .getCallbackArg(0, 2)
             .stringify()
-            .equals('{"namespace":"$.main.left.addRow","action":"apply","scope":{"rows":[[1,"row1"],[2,"row2"]]},"arguments":[[3,"row3"]]}')
+            .equals('{"namespace":"$.main.left.addRow","name":"0","parentNamespace":"$.main.left.rows","action":"apply","scope":{"rows":[[1,"row1"],[2,"row2"]]},"arguments":[[3,"row3"]]}')
             ;
         }
     );
@@ -545,6 +545,81 @@ function stateManagerTest6(
             .value(state, "$addListener")
             .not
             .equals(initialState.$addListener)
+            ;
+        }
+    );
+}
+/**
+* @test
+*   @title PunyJS.statenet.common._StateManager: regression, state as prototype
+*/
+function stateManagerTest7(
+    controller
+    , mock_callback
+) {
+    var stateManager, initialState, state, listenerManager, context;
+
+    arrange(
+        async function arrangeFn() {
+            stateManager = await controller(
+                [
+                    ":PunyJS.statenet.common._StateManager"
+                    , []
+                ]
+            );
+            initialState = {
+                "toolbar": {
+                    "title": "navigation toolbar"
+                    , "items": {
+                        "btnBack": {
+                            "enabled": true
+                            , "_icon": "back_icon"
+                            , "_focused": true
+                        }
+                        , "btnForward": {
+                            "enabled": false
+                            , "_icon": "forward_icon"
+                            , "_focused": false
+                        }
+                    }
+                }
+                , "main": {
+                    "left": {
+                        "rows": [
+                            [1,"row1"]
+                            , [2,"row2"]
+                        ]
+                        , "addRow": mock_callback()
+                    }
+                    , "right": {
+                        "_url":"/profile/pic"
+                    }
+                }
+                , "$addListener": "duplicate"
+            };
+        }
+    );
+
+    act(
+        function actFn() {
+            state = stateManager(
+                null
+                , initialState
+            );
+            context = Object.create(
+                state
+            );
+            state.title = "new title";
+            context.prop1 = "value2";
+        }
+    );
+
+    assert(
+        function assertFn(test) {
+            test("The state should not have a prop1 property")
+            .value(state)
+            .not
+            .hasOwnProperty("prop1")
             ;
         }
     );
