@@ -115,7 +115,7 @@ function _StateManager(
             , rootTarget
             , meta
         );
-    };
+    }
 
     /**
     * sets up the external storage and intakes the initial state if provided
@@ -448,7 +448,6 @@ function _StateManager(
             );
             return true;
         }
-
         ///LOGGING
         reporter.state(
             `${infos.statenet.set_trap_called} ${propName}`
@@ -489,7 +488,7 @@ function _StateManager(
         if (!!hasProp && utils_getType(oldValue) !== utils_getType(value)) {
             typeChange = true;
         }
-        //if this is an array handle thos seperately
+        //if this is an array handle those seperately
         if (is_array(target)) {
             return handleSetArray(
                 meta
@@ -569,7 +568,7 @@ function _StateManager(
                 , propName
             );
         }
-
+        //see if the target has this property
         var hasProp = target.hasOwnProperty(propName)
         , namespace = !!meta.__namespace
             ? `${meta.__namespace}.${propName}`
@@ -979,6 +978,7 @@ function _StateManager(
             `${errors.statenet.illegal_listener_operation} (${trapName} ${propName})`
         );
     }
+
     /**
     * @function
     */
