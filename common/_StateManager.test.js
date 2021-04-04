@@ -624,3 +624,99 @@ function stateManagerTest7(
         }
     );
 }
+/**
+* @test
+*   @title PunyJS.statenet.common._StateManager: sym link
+*/
+function stateManagerTest8(
+    controller
+    , mock_callback
+) {
+    var stateManager, initialState, state, listenerManager, context, cb1, cb2;
+
+    arrange(
+        async function arrangeFn() {
+            stateManager = await controller(
+                [
+                    ":PunyJS.statenet.common._StateManager"
+                    , []
+                ]
+            );
+            initialState = {
+                "items": [
+                    {
+                        "name": "item1"
+                    }
+                    , {
+                        "name": "item2"
+                    }
+                ]
+                , "currentItem": {
+                    "name": "item1"
+                }
+            };
+            cb1 = mock_callback();
+            cb2 = mock_callback();
+        }
+    );
+
+    act(
+        function actFn() {
+            state = stateManager(
+                null
+                , initialState
+            );
+            state.$addListener(
+                "items.$every.name"
+                , cb1
+            );
+            state.$addListener(
+                "currentItem.name"
+                , cb2
+            );
+            state.currentItem = state.items[0];
+            state.currentItem.name = "updated";
+
+            state.currentItem = state.items[1];
+            state.currentItem.name = "updated2";
+        }
+    );
+
+    assert(
+        function assertFn(test) {
+            test("cb1 should be called with")
+            .value(cb1)
+            .hasBeenCalled(2)
+            .hasBeenCalledWithArg(0, 1, '$.items.0.name')
+            .getCallbackArg(0, 0)
+            .stringify()
+            .equals('{"namespace":"$.items.0.name","name":"name","parentNamespace":"$.items.0","action":"set","miss":false,"typeChange":false,"value":"updated","oldValue":"item1"}')
+            ;
+
+            test("cb2 should be called with")
+            .value(cb2)
+            .hasBeenCalled(2)
+            .hasBeenCalledWithArg(0, 1, '$.currentItem.name')
+            .getCallbackArg(0, 0)
+            .stringify()
+            .equals('{"namespace":"$.currentItem.name","name":"name","parentNamespace":"$.currentItem","action":"set","miss":false,"typeChange":false,"value":"updated","oldValue":"item1"}')
+            ;
+
+            test("cb1 should be called second with")
+            .value(cb1)
+            .hasBeenCalledWithArg(1, 1, '$.items.1.name')
+            .getCallbackArg(1, 0)
+            .stringify()
+            .equals('{"namespace":"$.items.1.name","name":"name","parentNamespace":"$.items.1","action":"set","miss":false,"typeChange":false,"value":"updated2","oldValue":"item2"}')
+            ;
+
+            test("cb2 should be called second with")
+            .value(cb2)
+            .hasBeenCalledWithArg(1, 1, '$.currentItem.name')
+            .getCallbackArg(1, 0)
+            .stringify()
+            .equals('{"namespace":"$.currentItem.name","name":"name","parentNamespace":"$.currentItem","action":"set","miss":false,"typeChange":false,"value":"updated2","oldValue":"item2"}')
+            ;
+        }
+    );
+}
