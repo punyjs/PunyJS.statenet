@@ -830,7 +830,7 @@ function _StateManager(
         , oldValue, value
         , action, arrayAction
         , miss, typeChange, success
-        , propName, eventDetail
+        , propName, eventDetail, namespace
         ;
 
         //if the last member is a delete, then this is a delete operation
